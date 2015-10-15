@@ -1,0 +1,6 @@
+{:name "elm-light"
+ :version "0.1.0"
+ :author "Magnus Rundberget"
+ :source "https://github.com/rundis/elm-light"
+ :desc "Elm language plugin for Light Table"
+ :behaviors "elm-light.behaviors"}

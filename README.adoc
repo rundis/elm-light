@@ -1,0 +1,15 @@
+= Elm LightTable plugin
+Elm language plugin for Light Table
+v0.1.0, 2015-10-15: Initial release
+:library: Asciidoctor
+:numbered:
+:idprefix:
+:toc: macro
+
+
+http://elm-lang.org/[Elm] language plugin for Light Table
+
+== WORK IN PROGRESS !
+
+== Installation
+Currently you need to clone it into `$LT_USER_HOME\plugins` , once released you may install through the LightTable plugin manager.
