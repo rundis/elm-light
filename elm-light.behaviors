@@ -1,2 +1,9 @@
 [[:app :lt.objs.plugins/load-js ["mode/elm.js" "elm-light_compiled.js"]]
- [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]]
+ [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]
+
+
+ [:elm.lang :lt.plugins.elm-light/connect]
+
+ [:editor.elm :lt.plugins.elm-light/lint]
+ [:editor.elm :lt.plugins.elm-light/elm-lint-res]
+ ]
