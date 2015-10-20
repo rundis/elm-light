@@ -3,6 +3,7 @@
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
             [lt.objs.notifos :as notifos]
+            [lt.objs.console :as console]
             [lt.objs.clients :as clients]
             [lt.objs.clients.tcp :as tcp]
             [lt.objs.proc :as proc]
@@ -11,7 +12,8 @@
             [lt.objs.files :as files]
             [lt.objs.plugins :as plugins]
             [lt.objs.eval :as eval]
-            [lt.objs.sidebar.clients :as scl])
+            [lt.objs.sidebar.clients :as scl]
+            [lt.plugins.auto-complete :as auto-complete])
   (:require-macros [lt.macros :refer [behavior]]))
 
 
@@ -29,43 +31,7 @@
       (files/parent pkg-json)
       (files/parent path))))
 
-;;(files/walk-up-find "/Users/mrundberget/projects/hello-elm" "elm-package.json")
 
-;;(files/parent "/Users/mrundberget/projects/hello-elm/hello.elm")
-
-;; (defn on-out [cb msg]
-;;   (println "on out: " msg)
-;;   (cb msg))
-
-;; (defn on-err [cb msg]
-;;   (println "on err:" msg)
-;;   (cb msg))
-
-;; (def repl
-;;   (.spawn (js/require "child_process") "elm-repl"))
-
-
-;; (defn eval-one [stmt]
-;;   (.on (.-stdout repl) "data" (fn [msg]))
-
-
-;(.exec (js/require "child_process") "elm-make /Users/mrundberget/projects/hello-elm/hello.elm --warn --report=json --output=/dev/null" #(println "jada" %1 %2 %3))
-
-
-;; (.on (.-stdout repl) "data" (fn [msg]
-;;                               (println "Something from repl out:" msg)))
-
-;; (.on (.-stderr repl) "data" (fn [msg]
-;;                               (println "Error from repl :" msg)))
-
-;;(.write (.-stdin repl) "3 \\\n  + 3\n")
-
-;;(.kill repl)
-
-;;(.log js/console repl)
-
-
-;js/process.execPath
 
 (behavior ::on-out
           :triggers #{:proc.out}
@@ -76,9 +42,7 @@
                             (notifos/done-working)
                             (object/merge! this {:connected true}))
                           (do
-                            (println "Elm client out: " out)
-                            ;(object/update! this [:buffer] str data)
-                            )))))
+                            (println out))))))
 
 (behavior ::on-error
           :triggers #{:proc.error}
@@ -86,7 +50,7 @@
                       (let [out (.toString data)]
                         (when-not (> (.indexOf (:buffer @this) "Connected") -1)
                           (do
-                            (println "Elm client err: " out)
+                            (println out)
                             (object/update! this [:buffer] str data))))))
 
 (behavior ::on-exit
@@ -155,19 +119,75 @@
                                                   :origin ed
                                                   :info info
                                                   :create try-connect})]
+                        (notifos/working (str "Starting elm linting of: " (:path info)))
                         (clients/send cl
                                       :editor.elm.lint (assoc info :project-path (project-path (:path info)))
                                       :only ed))))
 (behavior ::elm-lint-res
           :triggers #{:elm.lint.res}
           :reaction (fn [ed res]
-                      (notifos/done-working "Elm linted")
-                      (doseq [l (filter #(= "warning" (:type %)) res)]
-                        ;(println l)
-                        (object/raise ed :editor.result (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))
-                      (doseq [l (filter #(= "error" (:type %)) res)]
-                        ;(println l)
-                        (object/raise ed :editor.exception (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))))
+                      (let [path (-> @ed :info :path)]
+                        (notifos/done-working "Elm linted")
+
+                        (doseq [l (filter #(and (= path (:file %)) (= "warning" (:type %))) res)]
+                          (object/raise ed
+                                        :editor.result
+                                        (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))
+                        (doseq [l (filter #(= "error" (:type %)) res)]
+                          (if (= path (:file l))
+                            (object/raise ed
+                                          :editor.exception
+                                          (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)})
+
+                            (let [out (:overview l)]
+                                (console/verbatim
+                                   (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
+                                   "error")))))))
+
+
+;;****************************************************
+;; autocomplete
+;;****************************************************
+
+(behavior ::trigger-update-hints
+          :triggers #{:editor.elm.hints.update!}
+          :debounce 100
+          :reaction (fn [ed res]
+                      (when-let [default-client (-> @ed :client :default)] ;; dont eval unless we're already connected
+                        (when @default-client
+                          (let [info (:info @ed)
+                                command :editor.elm.hint
+                                token (::token @ed)]
+                            (clients/send (eval/get-client! {:command command
+                                                             :info info
+                                                             :origin ed
+                                                             :create try-connect})
+                                          command (assoc info :token token) :only ed))))))
+
+
+
+(defn create-hints [completions]
+  (map #(do #js {:completion (:completion %)
+                 :text (:text %)})
+       completions))
+
+(behavior ::finish-update-hints
+          :triggers #{:editor.elm.hints.result}
+          :reaction (fn [ed res]
+                      (when [res]
+                        (object/merge! ed {::hints (create-hints res)})
+                        (object/raise auto-complete/hinter :refresh!))
+                      (notifos/done-working)))
+
+(behavior ::use-local-hints
+          :triggers #{:hints+}
+          :reaction (fn [ed hints token]
+                      (when (not= token (::token @ed))
+                        (object/merge! ed {::token token})
+                        (object/raise ed :editor.elm.hints.update!))
+                      (if-let [elm-hints (::hints @ed)]
+                        (concat elm-hints hints)
+                        hints)))
 
 
 
@@ -199,6 +219,3 @@
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :lint)))})
 
-(doseq [ed (object/by-tag :editor.elm)]
-  (println (object/->id ed))
-  (println (:client @ed)))
