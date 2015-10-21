@@ -198,6 +198,15 @@
 
 
 
+;; DOCS
+(behavior ::elm-doc-search
+          :triggers #{:types+}
+          :reaction (fn [this cur]
+                      (println "in types+")
+                      (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
+
+
+
 
 (object/object* ::elm-lang
                 :tags #{:elm.lang})

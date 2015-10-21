@@ -1,4 +1,5 @@
 var fpath = require("path");
+var fs = require("fs");
 var net = require("net");
 var psTree = require(fpath.join(__dirname, '../node_modules/ps-tree'));
 var cp = require("child_process");
@@ -26,7 +27,8 @@ function connect(projectPath, port, cid) {
           "dir":fpath.dirname(projectPath),
           "tags": ["elm.client", "tcp.client"],
           "commands":["editor.elm.lint",
-                      "editor.elm.hint"]});
+                      "editor.elm.hint",
+                      "docs.elm.search"]});
     process.stdout.write("connected!");
     startReactor(projectPath);
   });
@@ -71,6 +73,9 @@ function handle(req) {
   }
   if (cmd === "editor.elm.hint") {
     handleHint(req);
+  }
+  if(cmd === "docs.elm.search") {
+    handleDocsSearch(req);
   }
 
 }
@@ -143,6 +148,53 @@ function handleHint(req) {
   });
 
 }
+
+function handleDocsSearch(req) {
+  var clientId = req[0];
+  var term = req[2].search;
+  var outBuffer = "";
+  var aclPath = fpath.join(__dirname, '../node_modules/elm-oracle/bin/elm-oracle');
+
+  var candidates =
+      fs.readdirSync(process.argv[4])
+        .filter(function (f) { return fpath.extname(f) === ".elm"; });
+
+  if(candidates.length > 0) {
+    var args = [candidates[0], term];
+    // need to check if elm-stuff exists first !
+    var acl = cp.fork(aclPath, args, {cwd: process.argv[4],
+                                      silent: true,
+                                      execPath: process.execPath,
+                                      env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}})
+    acl.stdout.on("data", function(out) {
+      outBuffer += out;
+    });
+
+    acl.on("exit", function(exitCode) {
+      if(exitCode === 0) {
+        var res = JSON.parse(outBuffer);
+        var items =
+            res.map(function(x) {
+              return {ns: x.fullName,
+                      name: x.name,
+                      args: x.signature,
+                      doc: x.comment};
+            });
+
+        send([clientId, "doc.search.results", items]);
+
+      } else {
+        send(clientId, "doc.search.results", []);
+      }
+    });
+
+
+  } else {
+    send(clientId, "doc.search.results", []);
+  }
+}
+
+
 
 
 
