@@ -2,6 +2,7 @@
   (:require [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
+            [lt.objs.editor :as editor]
             [lt.objs.notifos :as notifos]
             [lt.objs.console :as console]
             [lt.objs.clients :as clients]
@@ -21,6 +22,18 @@
 (def elm-plugin-dir (plugins/find-plugin "elm-light"))
 (def elm-cilent-path (files/join elm-plugin-dir "node" "elm-client.js"))
 
+
+(defn symbol-token? [s]
+  (re-seq #"[\w\$_\-\.\*\+\/\?\><!]" s))
+
+(defn find-symbol-at-cursor [ed]
+  (let [loc (editor/->cursor ed)
+        token-left (editor/->token ed loc)
+        token-right (editor/->token ed (update-in loc [:ch] inc))]
+    (or (when (symbol-token? (:string token-right))
+          (assoc token-right :loc loc))
+        (when (symbol-token? (:string token-left))
+          (assoc token-left :loc loc)))))
 
 
 
@@ -198,13 +211,39 @@
 
 
 
+;;****************************************************
 ;; DOCS
+;;****************************************************
+
 (behavior ::elm-doc-search
           :triggers #{:types+}
           :reaction (fn [this cur]
                       (println "in types+")
                       (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
 
+
+(behavior ::elm-doc
+          :triggers #{:editor.doc}
+          :reaction (fn [ed]
+                      (let [token (find-symbol-at-cursor ed)
+                            command :editor.elm.doc
+                            info (assoc (@ed :info)
+                                   :loc (:loc token)
+                                   :sym (:string token))]
+                        (when token
+                          (clients/send (eval/get-client! {:command command
+                                                           :info info
+                                                           :origin ed
+                                                           :create try-connect})
+                                        command info :only ed)))))
+
+(behavior ::print-elm-doc
+          :triggers #{:editor.elm.doc.result}
+          :reaction (fn [ed result]
+                      (notifos/done-working)
+                      (if-not result
+                        (notifos/set-msg! "No docs found." {:class "error"})
+                        (object/raise ed :editor.doc.show! result))))
 
 
 

@@ -14,4 +14,7 @@
  [:editor.elm :-lt.plugins.auto-complete/textual-hints] ; just messes with autocomplete of elm stuff
 
  [:sidebar.docs.search :lt.plugins.elm-light/elm-doc-search]
+ [:editor.elm :lt.plugins.elm-light/elm-doc]
+ [:editor.elm :lt.plugins.elm-light/print-elm-doc]
+ [:editor.elm :lt.object/add-tag :docable]
  ]
