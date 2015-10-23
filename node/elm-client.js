@@ -285,7 +285,7 @@ function handleEval(clientId, msg) {
   repl.stdout.on("data", onOut);
   repl.stderr.on("data", onErr);
 
-  repl.stdin.write(msg.code + "\n");
+  repl.stdin.write(msg.code.replace(/\n/g, "\\\n") + "\n");
 }
 
 
