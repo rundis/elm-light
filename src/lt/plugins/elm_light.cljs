@@ -123,6 +123,13 @@
 
 
 
+(behavior ::elm-unsupported
+          :triggers #{:elm.unsupported}
+          :reaction (fn [_ res]
+                      (notifos/done-working)
+                      (notifos/set-msg! (:err res) {:class "error"})))
+
+
 (behavior ::lint
           :description "Lint (/make) a given elm file"
           :triggers #{:lint}
@@ -218,7 +225,6 @@
 (behavior ::elm-doc-search
           :triggers #{:types+}
           :reaction (fn [this cur]
-                      (println "in types+")
                       (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
 
 
@@ -247,6 +253,63 @@
 
 
 
+;;****************************************************
+;; Eval
+;;****************************************************
+
+
+
+(behavior ::on-eval.one
+          :desc "Elm repl: Eval current selection"
+          :triggers #{:eval.one}
+          :reaction (fn [ed]
+                      (let [pos (editor/->cursor ed)
+                            info (conj (:info @ed)
+                                  (if (editor/selection? ed)
+                                    {:code (editor/selection ed) :meta {:start (-> (editor/->cursor ed "start") :line)
+                                                                        :end (-> (editor/->cursor ed "end") :line)}}
+                                    {:pos pos :code (editor/line ed (:line pos)) :meta {:start (:line pos) :end (:line pos)}}))]
+                        (object/raise elm :eval! {:origin ed :info info}))))
+
+
+(behavior ::eval!
+          :triggers #{:eval!}
+          :reaction (fn [this event]
+                      (let [{:keys [info origin]} event]
+                        (notifos/working "Evaluating elm...")
+                        (clients/send (eval/get-client! {:command :editor.eval.elm
+                                                         :origin origin
+                                                         :info info
+                                                         :create try-connect})
+                                      :editor.eval.elm info
+                                      :only origin))))
+
+(behavior ::eval-result
+          :desc "Elm repl: Eval result"
+          :triggers #{:editor.elm.eval.res}
+          :reaction (fn [ed res]
+                      (notifos/done-working "Elm evaluated")
+                      (object/raise ed
+                                    :editor.result
+                                    (:result res)
+                                    {:line (-> res :meta :start)})))
+
+
+(behavior ::eval-err
+          :desc "Elm repl: Eval error"
+          :triggers #{:editor.elm.eval.err}
+          :reaction (fn [ed res]
+                      (notifos/done-working)
+                      (notifos/set-msg! "Elm eval reported errors." {:class "error"})
+                      (object/raise ed
+                                    :editor.exception
+                                    (:result res)
+                                    {:line (-> res :meta :start)})))
+
+
+
+
+
 (object/object* ::elm-lang
                 :tags #{:elm.lang})
 
@@ -266,4 +329,38 @@
               :exec (fn []
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :lint)))})
+
+
+
+;; (def repl (.spawn (js/require "child_process") "elm-repl"))
+
+
+;; (defn on-out [params out]
+;;   (println (.toString out))
+;;   ;;   (let [res (-> out (.replace "<", ""))]
+;;   ;;     (println res))
+
+;;   (println "send back based on params: " params))
+
+
+
+
+
+;; (defn eval-elm [params code]
+;;   (.removeAllListeners (.-stdout repl) "data") ; remove any previous listeners...
+;;   (let [cb (partial on-out params)]
+;;     (.on (.-stdout repl) "data" cb)
+;;     (.write (.-stdin repl) code)))
+
+;; (eval-elm {:line 1 :col 2} "1 + 1\n 2 + 2\n")
+
+;; (.kill repl)
+
+
+
+
+
+
+
+
 
