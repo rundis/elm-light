@@ -3,6 +3,7 @@ var fs = require("fs");
 var net = require("net");
 var psTree = require(fpath.join(__dirname, '../node_modules/ps-tree'));
 var cp = require("child_process");
+var wrench = require(fpath.join(__dirname, '../node_modules/wrench'));
 
 
 
@@ -26,9 +27,10 @@ function connect(projectPath, port, cid) {
       send({"name":fpath.basename(projectPath),
             "type":"elm",
             "client-id": cid,
-            "dir":fpath.dirname(projectPath),
+            "dir": projectPath,
             "tags": ["elm.client", "tcp.client"],
             "commands":["editor.eval.elm",
+                        "elm.repl.restart",
                         "editor.elm.lint",
                         "editor.elm.hint",
                         "editor.elm.doc",
@@ -53,16 +55,17 @@ function connect(projectPath, port, cid) {
   s.on("error", function(e) {
     console.error("connect error:" + e.stack);
   });
+
 }
 
 
 function startReactor(projectPath) {
-  reactor = cp.spawn("elm-reactor-unwrapped", [], {cwd: projectPath});
+  reactor = cp.spawn("elm-reactor", [], {cwd: projectPath});
   reactor.stdout.on("data", function(out) {
     console.log("Reactor out: " + out);
   });
   reactor.stderr.on("data", function(err) {
-    console.error("Reactor out: " + err);
+    console.error("Reactor err: " + err);
   });
 }
 
@@ -75,13 +78,17 @@ function startRepl(projectPath) {
 
 function send(msg) { s.write(JSON.stringify(msg) + "\n"); }
 
+
 function handle(req) {
   var clientId = req[0];
   var cmd = req[1];
   var msg = req[2];
 
   // project is required for all other actions
-  if(process.argv[4] === "." && cmd !== "editor.eval.elm" && cmd !== "client.close") {
+  if(process.argv[4] === "."
+     && cmd !== "editor.eval.elm"
+     && cmd !== "elm.repl.restart"
+     && cmd !== "client.close") {
     send([clientId, "elm.unsupported", {err: "The command " + cmd + " is not supported unless you connect to a project"}]);
     return;
   }
@@ -105,20 +112,26 @@ function handle(req) {
   if(cmd === "editor.elm.doc") {
     handleSingleDoc(clientId, msg);
   }
+  if(cmd === "elm.repl.restart") {
+    handleReplRestart(clientId, msg);
+  }
+
 
 }
 
 function handleClose() {
   if(reactor) {
     psTree(reactor.pid, function (err, children) {
-      cp.spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
+      var killer = cp.spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
+      killer.on("exit", function(exitCode) {
+        s.end();
+        process.exit(0);
+      });
     });
-  }
-
-  setTimeout(function() {
+  } else {
     s.end();
     process.exit(0);
-  }, 500)
+  }
 }
 
 
@@ -138,17 +151,16 @@ function handleLint(clientId, msg) {
   });
 }
 
-function handleHint(clientId, msg) {
+function aclSearch(args, callback) {
   var aclPath = fpath.join(__dirname, '../node_modules/elm-oracle/bin/elm-oracle');
-  var token = msg.token;
-  var args = [msg.path, token];
   var outBuffer = "";
+  var errBuff = "";
 
-  // need to check if elm-stuff exists first !
   var acl = cp.fork(aclPath, args, {cwd: process.argv[4],
                                     silent: true,
                                     execPath: process.execPath,
-                                    env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}})
+                                    env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}});
+
   acl.stdout.on("data", function(out) {
     outBuffer += out;
   });
@@ -159,6 +171,21 @@ function handleHint(clientId, msg) {
   acl.on("exit", function(exitCode) {
     if(exitCode === 0) {
       var res = JSON.parse(outBuffer);
+      callback(null, res);
+    } else {
+      callback("Error when calling elm-oracle : " + exitCode, null);
+    }
+  });
+
+}
+
+
+function handleHint(clientId, msg) {
+  var token = msg.token;
+  var args = [msg.path, token];
+
+  aclSearch(args, function(err, res) {
+    if(!err) {
       var completions =
           res.map(function(x) {
             return {text: (x.name.indexOf(token) === 0 ?
@@ -168,72 +195,46 @@ function handleHint(clientId, msg) {
           });
 
       send([clientId, "editor.elm.hints.result", completions]);
+    } else {
+      send([clientId, "editor.elm.hints.result", []]);
     }
   });
-
 }
 
 function handleDocsSearch(clientId, msg) {
-  var outBuffer = "";
-  var aclPath = fpath.join(__dirname, '../node_modules/elm-oracle/bin/elm-oracle');
 
   var candidates =
-      fs.readdirSync(process.argv[4])
+      wrench.readdirSyncRecursive(process.argv[4])
         .filter(function (f) { return fpath.extname(f) === ".elm"; });
 
-  if(candidates.length > 0) {
-    var args = [candidates[0], msg.term];
-    // need to check if elm-stuff exists first !
-    var acl = cp.fork(aclPath, args, {cwd: process.argv[4],
-                                      silent: true,
-                                      execPath: process.execPath,
-                                      env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}})
-    acl.stdout.on("data", function(out) {
-      outBuffer += out;
-    });
+  if(candidates.length === 0) { // need an elm-file for completions/docs
+    send([clientId, "doc.search.results", []]);
+  }
 
-    acl.on("exit", function(exitCode) {
-      if(exitCode === 0) {
-        var res = JSON.parse(outBuffer);
-        var items =
-            res.map(function(x) {
-              return {ns: x.fullName,
+  var args = [candidates[0], msg.search];
+  aclSearch(args, function(err, res) {
+    if(!err) {
+      var items = res.map(function(x) {
+                    return {ns: x.fullName,
                       name: x.name,
                       args: x.signature,
                       doc: x.comment};
-            });
+                  });
 
         send([clientId, "doc.search.results", items]);
-
-      } else {
-        send(clientId, "doc.search.results", []);
-      }
-    });
-
-
-  } else {
-    send(clientId, "doc.search.results", []);
-  }
+    } else {
+      send([clientId, "doc.search.results", []]);
+    }
+  });
 }
 
+
 function handleSingleDoc(clientId, msg) {
-  var outBuffer = "";
-  var aclPath = fpath.join(__dirname, '../node_modules/elm-oracle/bin/elm-oracle');
-  var args = [msg.path, msg.term];
+  var args = [msg.path, msg.sym];
 
-  // need to check if elm-stuff exists first !
-  var acl = cp.fork(aclPath, args, {cwd: process.argv[4],
-                                    silent: true,
-                                    execPath: process.execPath,
-                                    env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}})
 
-  acl.stdout.on("data", function(out) {
-    outBuffer += out;
-  });
-
-  acl.on("exit", function(exitCode) {
-    if(exitCode === 0) {
-      var res = JSON.parse(outBuffer);
+  aclSearch(args, function(err, res) {
+    if(!err) {
       var items =
           res.map(function(x) {
             return {ns: x.fullName,
@@ -244,6 +245,8 @@ function handleSingleDoc(clientId, msg) {
           });
 
       send([clientId, "editor.elm.doc.result", items.length === 1 ? items[0] : null]);
+    } else {
+      send([clientId, "editor.elm.doc.result", []]);
     }
   });
 }
@@ -268,6 +271,9 @@ function handleEval(clientId, msg) {
     if(res.length > 0 && res.trim() !== ">") {
       send([clientId, "editor.elm.eval.res", {result: res, meta: meta}]);
     }
+    if(res.trim() === ">" && errBuff === "") {
+      send([clientId, "editor.elm.eval.res", {result: "✓", meta: meta}]);
+    }
 
     if(errBuff.length > 0) {
       send([clientId, "editor.elm.eval.err", {result: errBuff, meta: meta}]);
@@ -286,6 +292,12 @@ function handleEval(clientId, msg) {
   repl.stderr.on("data", onErr);
 
   repl.stdin.write(msg.code.replace(/\n/g, "\\\n") + "\n");
+}
+
+function handleReplRestart(clientId, msg) {
+  repl.kill();
+  startRepl(process.argv[4]);
+  send([clientId, "elm.repl.restart.res", "hopefully ok..."]);
 }
 
 

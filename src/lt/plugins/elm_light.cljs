@@ -12,6 +12,7 @@
             [lt.objs.dialogs :as dialogs]
             [lt.objs.files :as files]
             [lt.objs.plugins :as plugins]
+            [lt.objs.browser :as browser]
             [lt.objs.eval :as eval]
             [lt.objs.sidebar.clients :as scl]
             [lt.plugins.auto-complete :as auto-complete])
@@ -36,15 +37,30 @@
           (assoc token-left :loc loc)))))
 
 
+(defn find-symbol [ed pos]
+  (let [curr-tok (editor/->token ed pos)]
+    (case (:type curr-tok)
+      "qualifier" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "variable" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "")))
+
+
 
 (defn- project-path [path]
   (if (files/dir? path)
     path
     (if-let [pkg-json (files/walk-up-find path "elm-package.json")]
       (files/parent pkg-json)
-      (files/parent path))))
+      nil ;(files/parent path)
+      )))
+
+(defn reactor-path [path]
+  (let [root (project-path path)]
+    (when (= (.indexOf path root) 0)
+      (subs path (count root)))))
 
 
+;(reactor-path "/Users/mrundberget/projects/elm-lang.org/src/examples/mario.elm")
 
 (behavior ::on-out
           :triggers #{:proc.out}
@@ -95,31 +111,37 @@
 (defn- bash-escape-spaces [s]
   (when s (clojure.string/replace s " " "\\ ")))
 
-(defn start-elm-client[{:keys [path client] :as props}]
+(defn start-elm-client[{:keys [path proj-path client] :as props}]
   (let [obj (object/create ::connecting-notifier client)
         client-id (clients/->id client)]
-    ;(object/merge! client {:port tcp/port
-    ;                       :proc obj})
     (notifos/working "Connecting..")
     (proc/exec {:command js/process.execPath
-                :args [elm-cilent-path tcp/port client-id (-> path project-path bash-escape-spaces)]
+                :args [elm-cilent-path tcp/port client-id (-> proj-path bash-escape-spaces) "--harmony_destructuring"]
                 :cwd elm-plugin-dir
                 :env {"ATOM_SHELL_INTERNAL_RUN_AS_NODE" 1}
-                :obj obj})))
+                :obj obj})
+    (object/merge! client {:dir proj-path})))
 
 
 
 (defn try-connect [{:keys [info] :as props}]
   (let [path (:path info)
-        client (clients/client! :elm.client)]
+        proj-path (project-path path)]
 
-    (start-elm-client {:path path
-                       :client client})
+    (if proj-path
+      (let [client (clients/client! :elm-client)]
+        (start-elm-client {:path path
+                           :proj-path proj-path
+                           :client client})
+        client)
+      (console/error (str "Couldn't find a elm-package.json in any parent of " path)))
+
+
 
     ;; TODO: Introduce some sanity checks for elm installation etc
     ;;     (check-all {:path path
     ;;                 :client client})
-    client))
+    ))
 
 
 
@@ -173,7 +195,7 @@
           :triggers #{:editor.elm.hints.update!}
           :debounce 100
           :reaction (fn [ed res]
-                      (when-let [default-client (-> @ed :client :default)] ;; dont eval unless we're already connected
+                      (when-let [default-client (-> @ed :client :default)] ;; dont if not already connected
                         (when @default-client
                           (let [info (:info @ed)
                                 command :editor.elm.hint
@@ -231,11 +253,12 @@
 (behavior ::elm-doc
           :triggers #{:editor.doc}
           :reaction (fn [ed]
-                      (let [token (find-symbol-at-cursor ed)
+                      (let [pos (editor/->cursor ed)
+                            token (find-symbol ed pos)
                             command :editor.elm.doc
                             info (assoc (@ed :info)
-                                   :loc (:loc token)
-                                   :sym (:string token))]
+                                   :loc pos
+                                   :sym token)]
                         (when token
                           (clients/send (eval/get-client! {:command command
                                                            :info info
@@ -308,6 +331,42 @@
 
 
 
+(behavior ::repl-restart!
+          :triggers #{:elm.repl.restart}
+          :reaction (fn [{:keys [info] :as ed}]
+                      (when-let [default-client (-> @ed :client :default)] ;; dont if not already connected
+                        (when @default-client
+                          (notifos/working "Restaring elm-repl...")
+                          (clients/send default-client
+                                        :elm.repl.restart info
+                                        :only ed)))))
+
+(behavior ::repl-restart-res
+          :triggers #{:elm.repl.restart.res}
+          :reaction (fn [ed res]
+                      (notifos/done-working "Elm Repl restarted")))
+
+
+
+
+
+
+
+(behavior ::elm-browse!
+          :triggers #{:elm.browse}
+          :reaction (fn [ed]
+                      (when-let [path (reactor-path (-> @ed :info :path))]
+                        (notifos/working "Opening elm file in browser")
+                        ;; just to ensure we are connected
+                        (eval/get-client! {:command :editor.eval.elm
+                                           :origin ed
+                                           :info (:info @ed)
+                                           :create try-connect})
+                        (let [b (or (first (object/by-tag :browser))
+                                    (browser/add))]
+                          (object/raise b :navigate! (str "http://localhost:8000" path "?debug")))
+                        (notifos/done-working))))
+
 
 
 (object/object* ::elm-lang
@@ -330,34 +389,38 @@
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :lint)))})
 
+(cmd/command {:command :elm.browse
+              :desc "Elm: View current elm file in browser (elm-reactor)"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.browse)))})
 
-
-;; (def repl (.spawn (js/require "child_process") "elm-repl"))
-
-
-;; (defn on-out [params out]
-;;   (println (.toString out))
-;;   ;;   (let [res (-> out (.replace "<", ""))]
-;;   ;;     (println res))
-
-;;   (println "send back based on params: " params))
-
-
-
-
-
-;; (defn eval-elm [params code]
-;;   (.removeAllListeners (.-stdout repl) "data") ; remove any previous listeners...
-;;   (let [cb (partial on-out params)]
-;;     (.on (.-stdout repl) "data" cb)
-;;     (.write (.-stdin repl) code)))
-
-;; (eval-elm {:line 1 :col 2} "1 + 1\n 2 + 2\n")
-
-;; (.kill repl)
+(cmd/command {:command :elm.restart-repl
+              :desc "Elm: Restart repl for current project"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.repl.restart)))})
 
 
 
+(defn get-top-level-expr [ed pos]
+  (let [curr-tok (editor/->token ed pos)]
+    (println "Curr tok: " curr-tok)
+    (case (:type curr-tok)
+      "qualifier" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "variable" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "")))
+
+
+
+(cmd/command {:command :elm.select.top.level
+              :desc "Elm: Select top level expression from current cursor position"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (let [[res client] (clients/discover :editor.eval.elm (:info ed))]
+                          (println res))
+                        ;(println (get-top-level-expr ed (editor/->cursor ed)))
+                        ))})
 
 
 

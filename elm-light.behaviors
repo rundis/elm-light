@@ -5,10 +5,13 @@
  [:elm.lang :lt.plugins.elm-light/connect]
 
  [:editor.elm :lt.plugins.elm-light/elm-unsupported]
+ [:editor.elm :lt.plugins.elm-light/elm-browse!]
 
  [:editor.elm :lt.plugins.elm-light/on-eval.one]
  [:editor.elm :lt.plugins.elm-light/eval-err]
  [:editor.elm :lt.plugins.elm-light/eval-result]
+ [:editor.elm :lt.plugins.elm-light/repl-restart!]
+ [:editor.elm :lt.plugins.elm-light/repl-restart-res]
  [:elm.lang :lt.plugins.elm-light/eval!]
 
  [:editor.elm :lt.plugins.elm-light/lint]
