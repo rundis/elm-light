@@ -23,35 +23,56 @@ function connect(projectPath, port, cid) {
   s.on("connect", function() {
     connected = true;
 
+
+    send({"name":fpath.basename(projectPath),
+                    "type":"elm",
+                    "client-id": cid,
+                    "dir": projectPath,
+                    "tags": ["elm.client", "tcp.client"],
+                    "commands":["editor.eval.elm",
+                                "elm.repl.restart",
+                                "editor.elm.lint",
+                                "editor.elm.hint",
+                                "editor.elm.doc",
+                                "docs.elm.search"]});
+
     if(projectPath !== ".") {
-      send({"name":fpath.basename(projectPath),
-            "type":"elm",
-            "client-id": cid,
-            "dir": projectPath,
-            "tags": ["elm.client", "tcp.client"],
-            "commands":["editor.eval.elm",
-                        "elm.repl.restart",
-                        "editor.elm.lint",
-                        "editor.elm.hint",
-                        "editor.elm.doc",
-                        "docs.elm.search"]});
-      startReactor(projectPath);
-    } else {
+      startReactor(projectPath, function(err, out) {
+        if(err) {
+          console.error(err);
+          handleClose();
+        }
+      });
+
+      startRepl(projectPath, function(err, out) {
+        if(err) {
+          console.error(err);
+          handleClose();
+        } else {
+          process.stdout.write("connected!");
+        }
+      });
+    }
+      /*else {
       send({"name":"Elm repl",
             "type":"elm",
             "client-id": cid,
             "dir":fpath.dirname(projectPath),
             "tags": ["elm.client", "tcp.client"],
             "commands":["editor.eval.elm"]});
-    }
-    startRepl(projectPath);
-    process.stdout.write("connected!");
 
+      handleClose();
+      //startRepl(projectPath);
+      //process.stdout.write("connected!");
+
+    } */
   });
+
   s.on("data", function(d) {
     var req = JSON.parse(d.toString());
     handle(req);
   });
+
   s.on("error", function(e) {
     console.error("connect error:" + e.stack);
   });
@@ -59,20 +80,39 @@ function connect(projectPath, port, cid) {
 }
 
 
-function startReactor(projectPath) {
+function startReactor(projectPath, callback) {
   reactor = cp.spawn("elm-reactor", [], {cwd: projectPath});
+
+  var errBuff = "";
   reactor.stdout.on("data", function(out) {
     console.log("Reactor out: " + out);
   });
   reactor.stderr.on("data", function(err) {
-    console.error("Reactor err: " + err);
+    errBuff += err;
+    if(errBuff.indexOf("listening") > -1) {
+      callback(null, errBuff);
+    }
+    if(errBuff.indexOf("Error on startup") > -1) {
+      callback(errBuff, null);
+    }
   });
 }
 
 
-function startRepl(projectPath) {
+function startRepl(projectPath, callback) {
   repl = cp.spawn("elm-repl", [], {cwd: projectPath});
-  repl.stdout.on("data", function(out) {});
+
+  var outBuffer = "";
+  repl.stdout.on("data", function(out) {
+    outBuffer += out;
+    if(outBuffer.indexOf(":help") > -1) {
+      callback(null, outBuffer);
+    }
+  });
+  repl.stderr.on("data", function(err) {
+    callback(err.toString(), null);
+  });
+
 }
 
 
@@ -138,6 +178,10 @@ function handleClose() {
 function handleLint(clientId, msg) {
   var elmCmd = "elm-make " + msg.path + " --warn --yes --report=json --output=/dev/null";
 
+  if(!msg.path) {
+    send([clientId, "elm.lint.res", []]);
+  }
+
   cp.exec(elmCmd, {cwd: msg['project-path']}, function (error, stdout, stderr) {
     var results =
         stdout.split("\n")
@@ -183,6 +227,12 @@ function aclSearch(args, callback) {
 function handleHint(clientId, msg) {
   var token = msg.token;
   var args = [msg.path, token];
+
+
+  if(!msg.path) {
+    send([clientId, "editor.elm.hints.result", []]);
+    return;
+  }
 
   aclSearch(args, function(err, res) {
     if(!err) {
@@ -233,6 +283,11 @@ function handleSingleDoc(clientId, msg) {
   var args = [msg.path, msg.sym];
 
 
+  if(!msg.path) {
+    send([clientId, "editor.elm.doc.result", null]);
+    return;
+  }
+
   aclSearch(args, function(err, res) {
     if(!err) {
       var items =
@@ -246,7 +301,7 @@ function handleSingleDoc(clientId, msg) {
 
       send([clientId, "editor.elm.doc.result", items.length === 1 ? items[0] : null]);
     } else {
-      send([clientId, "editor.elm.doc.result", []]);
+      send([clientId, "editor.elm.doc.result", null]);
     }
   });
 }

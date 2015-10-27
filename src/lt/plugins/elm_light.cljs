@@ -77,21 +77,21 @@
           :triggers #{:proc.error}
           :reaction (fn [this data]
                       (let [out (.toString data)]
-                        (when-not (> (.indexOf (:buffer @this) "Connected") -1)
-                          (do
-                            (println out)
-                            (object/update! this [:buffer] str data))))))
+                        (if-not (:connected @this)
+                          (object/update! this [:buffer] str data)
+                          (console/error out)))))
+
 
 (behavior ::on-exit
           :triggers #{:proc.exit}
           :reaction (fn [this data]
-                      (when-not (:connected @this)
+                      (when (and (not (:connected @this)) (seq (:buffer @this)))
                         (notifos/done-working)
                         ;; hm seems to enter here even when we exit using the disconnect button in the side connect bar
-;;                         (popup/popup! {:header "We couldn't connect."
-;;                                        :body [:span "Looks like there was an issue trying to connect
-;;                                               to the project. Here's what we got:" [:pre (:buffer @this)]]
-;;                                        :buttons [{:label "close"}]})
+                        (popup/popup! {:header "We couldn't connect."
+                                       :body [:span "Looks like there was an issue trying to connect
+                                              to the project. Here's what we got:" [:pre (:buffer @this)]]
+                                       :buttons [{:label "close"}]})
                         (clients/rem! (:client @this)))
                       (proc/kill-all (:procs @this))
                       (object/destroy! this)))
@@ -126,22 +126,19 @@
 
 (defn try-connect [{:keys [info] :as props}]
   (let [path (:path info)
-        proj-path (project-path path)]
+        proj-path (project-path path)
+        client (clients/client! :elm-client)]
 
     (if proj-path
-      (let [client (clients/client! :elm-client)]
-        (start-elm-client {:path path
-                           :proj-path proj-path
-                           :client client})
-        client)
-      (console/error (str "Couldn't find a elm-package.json in any parent of " path)))
+      (start-elm-client {:path path
+                         :proj-path proj-path
+                         :client client})
 
-
-
-    ;; TODO: Introduce some sanity checks for elm installation etc
-    ;;     (check-all {:path path
-    ;;                 :client client})
-    ))
+      (do
+        (notifos/done-working)
+        (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
+        (clients/rem! client)))
+    client))
 
 
 
