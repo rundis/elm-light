@@ -177,7 +177,7 @@ You may close connections by using the command `Connect: Show connect bar` and c
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
-only a future so far !
+0.1.0 Initial release
 
 == License
 MIT, same as Light Table. See LICENSE.md for details.
