@@ -1,6 +1,6 @@
 = Elm LightTable plugin
 Elm language plugin for Light Table
-v0.1.0, 2015-10-15: Draft
+v0.1.0, 2015-10-20: published
 :library: Asciidoctor
 :numbered:
 :idprefix:
@@ -9,13 +9,14 @@ v0.1.0, 2015-10-15: Draft
 
 http://elm-lang.org/[Elm] language plugin for Light Table
 
-== NOT RELEASED YET !
 
 == Installation
-Currently you need to clone it into `$LT_USER_HOME\plugins` , once released you may install through the LightTable plugin manager.
+Install using the Light Table plugin manager.
+Alternatively you can clone it into `$LT_USER_HOME\plugins`.
 
 
 == Preconditions
+* **LIghtTable 0.8-alpha or higher is required**
 * You will need to have the http://elm-lang.org/install[elm-platform] (there is also a npm installer out there)  installed and the following should be in your path:
 ** https://github.com/elm-lang/elm-reactor[elm-reactor]
 ** https://github.com/elm-lang/elm-make[elm-make]
@@ -74,13 +75,6 @@ as the hello.elm file resides. So the elm client will use `/home/myuser/projects
 Hence the root path and project name will be the same
 * If you (with the elm-client still running) later add a .elm file anywhere below `/home/myuser/projects/hello-elm`  and eval or lint (or whatever) on it, the plugin
 will assume it belongs to the same elm-client and use that.
-
-
-
-
-
-
-
 
 
 
