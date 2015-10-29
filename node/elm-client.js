@@ -15,10 +15,37 @@ var reactor = null;
 var reactorChildren = null;
 
 var connected = false;
+var logFile = null;
 
 
+function pad2(num) {
+  return ("00" + num).substr(-2,2);
+}
+function pad3(num) {
+  return ("000" + num).substr(-3,3);
+}
 
-function connect(projectPath, port, cid) {
+function getLogTime() {
+  var d = new Date();
+  return d.getFullYear() +
+    "-" + pad2(d.getMonth() + 1) +
+    "-" + pad2(d.getDate()) +
+    " " + pad2(d.getHours()) +
+    ":" + pad2(d.getMinutes()) +
+    ":" + pad2(d.getSeconds()) +
+    "." + pad3(d.getMilliseconds());
+}
+
+function logToFile(str) {
+  try {
+    if(logFile) {
+      logFile.write(getLogTime() + " - " + str + "\n");
+    }
+  } catch (e) {}
+}
+
+
+function connect(projectPath, port, cid, reactorPort) {
   s = net.connect(port, "localhost");
   s.on("connect", function() {
     connected = true;
@@ -31,13 +58,19 @@ function connect(projectPath, port, cid) {
                     "tags": ["elm.client", "tcp.client"],
                     "commands":["editor.eval.elm",
                                 "elm.repl.restart",
+                                "editor.elm.make",
                                 "editor.elm.lint",
                                 "editor.elm.hint",
                                 "editor.elm.doc",
                                 "docs.elm.search"]});
 
     if(projectPath !== ".") {
-      startReactor(projectPath, function(err, out) {
+
+      logFile = fs.createWriteStream(projectPath + "/elmclient.log");
+      logToFile("connected to " + projectPath);
+
+
+      startReactor(projectPath, reactorPort, function(err, out) {
         if(err) {
           console.error(err);
           handleClose();
@@ -80,8 +113,8 @@ function connect(projectPath, port, cid) {
 }
 
 
-function startReactor(projectPath, callback) {
-  reactor = cp.spawn("elm-reactor", [], {cwd: projectPath});
+function startReactor(projectPath, port, callback) {
+  reactor = cp.spawn("elm-reactor", ["--port="+port], {cwd: projectPath});
 
   var errBuff = "";
   reactor.stdout.on("data", function(out) {
@@ -143,6 +176,10 @@ function handle(req) {
   if (cmd === "editor.elm.lint") {
     handleLint(clientId, msg);
   }
+  if(cmd === "editor.elm.make") {
+    handleMake(clientId, msg);
+  }
+
   if (cmd === "editor.elm.hint") {
     handleHint(clientId, msg);
   }
@@ -159,19 +196,65 @@ function handle(req) {
 
 }
 
+
+
+var kill = function (pid, signal, callback) {
+    signal   = signal || 'SIGKILL';
+    callback = callback || function () {};
+    var killTree = true;
+    if(killTree) {
+        psTree(pid, function (err, children) {
+            [pid].concat(
+                children.map(function (p) {
+                    return p.PID;
+                })
+            ).forEach(function (tpid) {
+                try { process.kill(tpid, signal) }
+                catch (ex) { }
+            });
+            callback();
+        });
+    } else {
+        try { process.kill(pid, signal) }
+        catch (ex) { }
+        callback();
+    }
+};
+
+
+//kill(child.pid);
+
 function handleClose() {
-  if(reactor) {
-    psTree(reactor.pid, function (err, children) {
-      var killer = cp.spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
-      killer.on("exit", function(exitCode) {
-        s.end();
-        process.exit(0);
-      });
+  logToFile("handleClose called");
+
+  //if(reactor) {
+  try {
+    logToFile("try to kill any children of reactor");
+    kill(reactor.pid, null, function() {
+      logToFile("Callback from completed kill of reactor subprocesses");
     });
-  } else {
+    logToFile("kill the reactor process");
+    reactor.kill();
+  } catch(e) {
+    logToFile("Error closing my reactor friend...");
+    logToFile(e.stack);
+  }
+  //}
+
+  logToFile("Set timeout and then kill main process");
+  setTimeout(function() {
+    logToFile("After timeout, kill main process and socket");
+    try {
+      if(logFile) {
+        logFile.end();
+      }
+    } catch (e) {
+      console.error("Error closing logfile");
+    }
     s.end();
     process.exit(0);
-  }
+  }, 100);
+
 }
 
 
@@ -180,12 +263,13 @@ function handleLint(clientId, msg) {
 
   if(!msg.path) {
     send([clientId, "elm.lint.res", []]);
+    return;
   }
 
   cp.exec(elmCmd, {cwd: msg['project-path']}, function (error, stdout, stderr) {
     var results =
         stdout.split("\n")
-              .filter(function(s) { return s.indexOf("overview") > -1;})
+              .filter(function(s) { return s.indexOf("[{") === 0;})
               .map(function (item) { return JSON.parse(item); });
     if (results.length > 0) {
       results = results.reduce(function(a, b) {return a.concat(b);});
@@ -194,6 +278,37 @@ function handleLint(clientId, msg) {
     send([clientId, "elm.lint.res", results]);
   });
 }
+
+function handleMake(clientId, msg) {
+  if(!msg.path) {
+    send([clientId, "elm.make.res", []]);
+    return;
+  }
+
+  var parsed = fpath.parse(msg.path);
+  parsed.ext = "js";
+  parsed.base = lowerFirstLetter(parsed.name) + ".js";
+  parsed.name = lowerFirstLetter(parsed.name);
+
+
+  var outputFile = fpath.format(parsed);
+  var elmCmd = "elm-make " + msg.path + " --warn --yes --report=json --output=" + outputFile;
+
+  cp.exec(elmCmd, {cwd: msg['project-path']}, function (error, stdout, stderr) {
+    var results =
+        stdout.split("\n")
+              .filter(function(s) { return s.indexOf("[{") === 0;})
+              .map(function (item) { return JSON.parse(item);
+              });
+    if (results.length > 0) {
+      results = results.reduce(function(a, b) {return a.concat(b);});
+    }
+
+    send([clientId, "elm.make.res", results]);
+  });
+}
+
+
 
 function aclSearch(args, callback) {
   var aclPath = fpath.join(__dirname, '../node_modules/elm-oracle/bin/elm-oracle');
@@ -350,12 +465,39 @@ function handleEval(clientId, msg) {
 }
 
 function handleReplRestart(clientId, msg) {
+  repl.stdout.removeAllListeners("data");
+  repl.stderr.removeAllListeners("data");
+
   repl.kill();
-  startRepl(process.argv[4]);
-  send([clientId, "elm.repl.restart.res", "hopefully ok..."]);
+  startRepl(process.argv[4], function(err, out) {
+    if (err) {
+      console.log("ERROR restarting repl !");
+      handleClose();
+    } else {
+      send([clientId, "elm.repl.restart.res", "hopefully ok..."]);
+    }
+  });
+
 }
 
 
+function lowerFirstLetter(str) {
+    return str.charAt(0).toLowerCase() + str.slice(1);
+}
 
-connect(process.argv[4], parseInt(process.argv[2]), parseInt(process.argv[3]));
+
+process.on("exit", function() {
+  logToFile("elm client process exit event");
+});
+
+process.on("beforeExit", function() {
+  logToFile("elm client process beforeExit event");
+});
+
+process.on('SIGTERM', function() {
+  logToFile('Got SIGTERM');
+});
+
+
+connect(process.argv[4], parseInt(process.argv[2]), parseInt(process.argv[3]), parseInt(process.argv[5]));
 

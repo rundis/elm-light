@@ -3,6 +3,7 @@
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
             [lt.objs.editor :as editor]
+            [lt.objs.tabs :as tabs]
             [lt.objs.notifos :as notifos]
             [lt.objs.console :as console]
             [lt.objs.clients :as clients]
@@ -15,13 +16,26 @@
             [lt.objs.browser :as browser]
             [lt.objs.eval :as eval]
             [lt.objs.sidebar.clients :as scl]
-            [lt.plugins.auto-complete :as auto-complete])
+            [lt.plugins.auto-complete :as auto-complete]
+            [lt.util.js :as js-util])
   (:require-macros [lt.macros :refer [behavior]]))
 
 
 
 (def elm-plugin-dir (plugins/find-plugin "elm-light"))
 (def elm-cilent-path (files/join elm-plugin-dir "node" "elm-client.js"))
+
+
+
+(def harbor
+  ((js/require "harbor") 3000, 4000))
+
+
+(defn claim-reactor-port [path cb]
+  (.claim harbor path cb))
+
+(defn release-reactor-port [path]
+  (.release harbor path))
 
 
 (defn symbol-token? [s]
@@ -60,7 +74,6 @@
       (subs path (count root)))))
 
 
-;(reactor-path "/Users/mrundberget/projects/elm-lang.org/src/examples/mario.elm")
 
 (behavior ::on-out
           :triggers #{:proc.out}
@@ -115,12 +128,15 @@
   (let [obj (object/create ::connecting-notifier client)
         client-id (clients/->id client)]
     (notifos/working "Connecting..")
-    (proc/exec {:command js/process.execPath
-                :args [elm-cilent-path tcp/port client-id (-> proj-path bash-escape-spaces) "--harmony_destructuring"]
-                :cwd elm-plugin-dir
-                :env {"ATOM_SHELL_INTERNAL_RUN_AS_NODE" 1}
-                :obj obj})
-    (object/merge! client {:dir proj-path})))
+    (claim-reactor-port
+     proj-path (fn [err port]
+                 (object/merge! client {:dir proj-path
+                                        :reactor-port port})
+                 (proc/exec {:command js/process.execPath
+                             :args [elm-cilent-path tcp/port client-id (-> proj-path bash-escape-spaces) port]
+                             :cwd elm-plugin-dir
+                             :env {"ATOM_SHELL_INTERNAL_RUN_AS_NODE" 1}
+                             :obj obj})))))
 
 
 
@@ -149,6 +165,28 @@
                       (notifos/set-msg! (:err res) {:class "error"})))
 
 
+
+(defn display-make-results [ed res path]
+  (when (seq (filter #(= "error" (:type %)) res))
+    (notifos/set-msg! "Elm make returned errors; check you editor or the console for details"
+                      {:class "error"}))
+
+
+  (doseq [l (filter #(and (= path (:file %)) (= "warning" (:type %))) res)]
+                          (object/raise ed
+                                        :editor.result
+                                        (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))
+  (doseq [l (filter #(= "error" (:type %)) res)]
+                          (if (= path (:file l))
+                            (object/raise ed
+                                          :editor.exception
+                                          (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)})
+
+                            (let [out (:overview l)]
+                                (console/verbatim
+                                   (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
+                                   "error")))))
+
 (behavior ::lint
           :description "Lint (/make) a given elm file"
           :triggers #{:lint}
@@ -167,21 +205,31 @@
           :reaction (fn [ed res]
                       (let [path (-> @ed :info :path)]
                         (notifos/done-working "Elm linted")
+                        (when (seq (filter #(= "error" (:type %)) res))
+                          )
+                        (display-make-results ed res path))))
 
-                        (doseq [l (filter #(and (= path (:file %)) (= "warning" (:type %))) res)]
-                          (object/raise ed
-                                        :editor.result
-                                        (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))
-                        (doseq [l (filter #(= "error" (:type %)) res)]
-                          (if (= path (:file l))
-                            (object/raise ed
-                                          :editor.exception
-                                          (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)})
 
-                            (let [out (:overview l)]
-                                (console/verbatim
-                                   (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
-                                   "error")))))))
+(behavior ::make
+          :description "Make (to js) a given elm file"
+          :triggers #{:elm.make}
+          :reaction (fn [ed]
+                      (let [info (:info @ed)
+                            cl (eval/get-client! {:command :editor.elm.make
+                                                  :origin ed
+                                                  :info info
+                                                  :create try-connect})]
+                        (notifos/working (str "Starting elm make for: " (:path info)))
+                        (clients/send cl
+                                      :editor.elm.make (assoc info :project-path (project-path (:path info)))
+                                      :only ed))))
+(behavior ::elm-make-res
+          :triggers #{:elm.make.res}
+          :reaction (fn [ed res]
+                      (let [path (-> @ed :info :path)]
+                        (notifos/done-working (str "Elm make completed for: " path))
+                        (display-make-results ed res path))))
+
 
 
 ;;****************************************************
@@ -222,11 +270,11 @@
           :triggers #{:hints+}
           :reaction (fn [ed hints token]
                       (when (not= token (::token @ed))
-                        (object/merge! ed {::token token})
-                        (object/raise ed :editor.elm.hints.update!))
-                      (if-let [elm-hints (::hints @ed)]
-                        (concat elm-hints hints)
-                        hints)))
+                          (object/merge! ed {::token token})
+                          (object/raise ed :editor.elm.hints.update!))
+                        (if-let [elm-hints (::hints @ed)]
+                          (concat elm-hints hints)
+                          hints)))
 
 
 
@@ -346,23 +394,24 @@
 
 
 
-
-
-
 (behavior ::elm-browse!
           :triggers #{:elm.browse}
           :reaction (fn [ed]
-                      (when-let [path (reactor-path (-> @ed :info :path))]
-                        (notifos/working "Opening elm file in browser")
-                        ;; just to ensure we are connected
-                        (eval/get-client! {:command :editor.eval.elm
-                                           :origin ed
-                                           :info (:info @ed)
-                                           :create try-connect})
-                        (let [b (or (first (object/by-tag :browser))
-                                    (browser/add))]
-                          (object/raise b :navigate! (str "http://localhost:8000" path "?debug")))
-                        (notifos/done-working))))
+                      (let [path (reactor-path (-> @ed :info :path))
+                            client (eval/get-client! {:command :editor.eval.elm
+                                                      :origin ed
+                                                      :info (:info @ed)
+                                                      :create try-connect})]
+                        (when (and client path)
+                          (notifos/working "Opening elm file in browser")
+                          (let [b (or (first (object/by-tag :browser))
+                                      (browser/add))
+                                get-url #(str "http://localhost:" (:reactor-port @client) path "?debug")]
+
+                            (if (:connected @client)
+                              (object/raise b :navigate! (get-url))
+                              (js-util/wait 100 #(object/raise b :navigate! (get-url)))))
+                          (notifos/done-working)))))
 
 
 
@@ -386,6 +435,12 @@
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :lint)))})
 
+(cmd/command {:command :elm.make
+              :desc "Elm: Make selected file"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.make)))})
+
 (cmd/command {:command :elm.browse
               :desc "Elm: View current elm file in browser (elm-reactor)"
               :exec (fn []
@@ -400,27 +455,89 @@
 
 
 
-(defn get-top-level-expr [ed pos]
-  (let [curr-tok (editor/->token ed pos)]
-    (println "Curr tok: " curr-tok)
-    (case (:type curr-tok)
-      "qualifier" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-      "variable" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-      "")))
+;; (defn get-top-level-expr [ed pos]
+;;   (let [curr-tok (editor/->token ed pos)]
+;;     (println "Curr tok: " curr-tok)
+;;     (case (:type curr-tok)
+;;       "qualifier" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+;;       "variable" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+;;       "")))
 
 
 
-(cmd/command {:command :elm.select.top.level
-              :desc "Elm: Select top level expression from current cursor position"
+;; (cmd/command {:command :elm.select.top.level
+;;               :desc "Elm: Select top level expression from current cursor position"
+;;               :exec (fn []
+;;                       (when-let [ed (pool/last-active)]
+;;                         (let [[res client] (clients/discover :editor.eval.elm (:info ed))]
+;;                           (println res))
+;;                         ;(println (get-top-level-expr ed (editor/->cursor ed)))
+;;                         ))})
+
+
+;;****************************************************
+;; Anonymous repl
+;;****************************************************
+
+
+
+(behavior ::on-focus-repl-ed
+          :triggers #{:focus!}
+          :reaction (fn [this]
+                      (when (:main @this)
+                        (object/raise (:main @this) :focus!))))
+
+
+(behavior ::repl-destroy-on-close
+          :triggers #{:close}
+          :reaction (fn [this]
+                      (println "close elmrepl")
+                      (object/raise (:main @this) :close)
+                      (object/destroy! this)))
+
+(behavior ::repl-close-parent
+          :triggers #{:destroy}
+          :reaction (fn [this]
+                      (println "destroy repl parent")
+                      (object/destroy! (:frame @this))))
+
+(behavior ::on-show-repl-refresh-eds
+          :triggers #{:show}
+          :reaction (fn [this]
+                      (when (:main @this)
+                        (object/raise (:main @this) :show)
+                        (object/raise (:main @this) :refresh!)
+                        (editor/focus (:main @this)))))
+
+(object/object* ::elmrepl
+                :tags #{:elmrepl}
+                :name "elmrepl"
+                :live true
+                :init (fn [this]
+                        (let [main (-> (pool/create {:mime "text/x-elm" :content "" :ns "user"})
+                                       (object/remove-tags [:editor.elm])
+                                       (object/add-tags [:editor.elm.repl :editor.transient]))]
+                          (object/merge! main {:frame this})
+                          (editor/clear-history main)
+                          (object/merge! main {:dirty false
+                                               :editor.generation (editor/->generation main)})
+                          (object/merge! this {:main main
+                                               :dirty false})
+                          (editor/+class main :main)
+                          (editor/move-cursor main {:line 0 :ch 0})
+                          [:div
+                           (object/->content main)])))
+
+
+(defn add-repl []
+  (let [elmrepl (object/create ::elmrepl)]
+    (tabs/add! elmrepl)
+    (tabs/active! elmrepl)
+    elmrepl))
+
+(cmd/command {:command :elmrepl
+              :desc "Elm repl: Open a elm repl"
               :exec (fn []
-                      (when-let [ed (pool/last-active)]
-                        (let [[res client] (clients/discover :editor.eval.elm (:info ed))]
-                          (println res))
-                        ;(println (get-top-level-expr ed (editor/->cursor ed)))
-                        ))})
-
-
-
-
+                      (add-repl))})
 
 

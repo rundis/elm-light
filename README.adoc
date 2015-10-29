@@ -1,6 +1,6 @@
 = Elm LightTable plugin
 Elm language plugin for Light Table
-v0.1.0, 2015-10-15: Initial release
+v0.1.0, 2015-10-15: Draft
 :library: Asciidoctor
 :numbered:
 :idprefix:
@@ -9,7 +9,184 @@ v0.1.0, 2015-10-15: Initial release
 
 http://elm-lang.org/[Elm] language plugin for Light Table
 
-== WORK IN PROGRESS !
+== NOT RELEASED YET !
 
 == Installation
 Currently you need to clone it into `$LT_USER_HOME\plugins` , once released you may install through the LightTable plugin manager.
+
+
+== Preconditions
+* You will need to have the http://elm-lang.org/install[elm-platform] (there is also a npm installer out there)  installed and the following should be in your path:
+** https://github.com/elm-lang/elm-reactor[elm-reactor]
+** https://github.com/elm-lang/elm-make[elm-make]
+** https://github.com/elm-lang/elm-package[elm-package]
+** https://github.com/elm-lang/elm-repl[elm-repl]
+* For all commands/features you will need to have a project folder with a `elm-package.json` file
+
+
+NOTE: Only tested with elm-platform 0.15.1 using Mac OS/X. **Windows will (most likely) not work currently**.
+
+
+== Overview
+
+=== Elm client
+For pretty much any operation this plugin you support you need an elm client connection. An elm client connection
+is a small node process that the plugin typically will spawn automatically for any action that requires a elm client.
+
+.When the elm-client starts it;
+. Opens an elm-repl
+. Starts (and listens) to elm-reactor
+. Listens for commands from light table (eval, docs, autocompletions etc)
+
+
+.You may also manually connect to an elm project using the connect bare in Light Table
+* Invoke the command: `Connect: Add Connection`
+* Select **Elm** from the list of client types
+* If all goes well you will get a confirmation in the status bar that the project is connected
+
+
+.To disconnect
+* Invoke the command `Connect: Show connect bar`
+* Find the project in the list and click disconnect
+
+The client connectionns is named after the the directory containing the elm-package.json
+
+=== Elm project
+In the future the plugin might add support for geting started with just a simple .elm file, but you very quickly
+end up having to add some config especially a elm-package.json. So as mentioned in the preconditions, you will need one.
+
+
+.How does elm-light determine the project ?
+
+Say you have a project with the following structure
+
+[source]
+----
+/home/myuser/projects/hello-elm/elm-package.json
+/home/myuser/projects/hello-elm/hello.elm
+/home/myuser/projects/hello-elm/src/util.elm
+----
+
+
+* If you start of with evaluating hello.elm, the plugin will start looking for a elm-package.json in the same directory
+as the hello.elm file resides. So the elm client will use `/home/myuser/projects/hello-elm` as root path and the project assumed to be `hello-elm`
+* If you start of with evaluating util.elm, it will start looking for a `elm-package.json` in the `src` folder, since not finding one it will try the parent directory (and recurse until one found or none can be found).
+Hence the root path and project name will be the same
+* If you (with the elm-client still running) later add a .elm file anywhere below `/home/myuser/projects/hello-elm`  and eval or lint (or whatever) on it, the plugin
+will assume it belongs to the same elm-client and use that.
+
+
+
+
+
+
+
+
+
+
+== Usage
+
+=== Linting
+To lint an elm file use the command: `Elm: Lint selected file`
+
+* Errors are show inline for all errors in the file. Any errors caused by dependent files are shown in the console.
+* Warnings are also shown inline
+
+NOTE: Rember to save. Linting works on saved files !
+
+=== Make (to js)
+To run make for your elm file/project use the command: `Elm: Make selected file`
+A .js file is generated in the same directory as the .elm file resides.
+Errors and warnings are handled similar to linting.
+
+
+=== Language docs
+.From an elm file;
+* Select the command: Docs: Search language docs (ctrl-shift-d)
+* Enter search criteria
+* Behold the results
+
+NOTE: Doc search currently picks a random elm file as the basis for search. And uses
+https://github.com/ElmCast/elm-oracle[elm-oracle] behind the scenes. Elm oracle is bundled with the plugin btw.
+
+=== Inline doc
+* With the cursor over something docable press ctrl+d.
+* Inline documentation is displayed (or an error message is shown on the status bar)
+* Ctrl+d again to close the inline doc
+
+NOTE: Only functions that are available through imports (explicit + elm defaults) are docable
+
+=== Autocomplete (incubating)
+Once an elm editor has a connection (through use of linting, make, inline doc etc)
+the autocompleter kicks in (sort of (: ).
+
+It should kick in when you type something (like Signa ... should show completions from Signal etc)
+
+
+.To turn it off (and optionally turn on text hints) just edit your __User behaviors__
+[source,clojure]
+----
+ [:editor.elm -:lt.plugins.elm-light/use-local-hints] ; Turn off the autocompleter
+ [:editor.clj :lt.plugins.auto-complete/textual-hints] ; Enable textual hings again
+----
+
+
+
+
+=== Editor repl
+Once connected to an elm-project in Light Table, a repl is started running in the background.
+This means you can evaluate statements from within any given elm editor.
+
+* In an elm file:
+* If a single line with no line breaks;
+** just position the cursor on the line and press `cmd+enter"
+** Otherwise select the region that constitutes a top level statement and press `cmd+enter`
+* results are shown inline
+
+
+You may reset the repl to start with a clean slate. Just select the command: `Elm: Restart repl for current project`
+
+NOTE: Only one top-level statement at the time can be eval'ed. Also the repl is shared
+between all elm editors for a given project.
+
+=== "Anonymous" repl
+You may also create a repl that isn't backed by a file
+* Select the command `Elm repl: Open a elm repl`
+* You may now eval code as for an Editor repl
+
+NOTE: You need a connected elm project for this to work
+
+
+=== Elm-Reactor
+When you connect an elm project, elm-reactor is started in the background.
+To support multiple projects running in parallell each projects elm-reactor gets a port from the port-range (3000 - 4000)
+
+A convenience command has been added to view an elm file in the Light Table internal browser.
+Select the command `Elm: View current elm file in browser (elm-reactor)`
+
+
+TIP: If you get a blank page (and/or an error in the console about the address not being available), it might be
+because elm-reactor is running make in the background. You might need to be patient and refresh the browser (`cmd+r` for mac)
+
+WARNING: On Mac the elm-reactor starts two processes. You may experience occurences when the plugin is unable
+to terminate both these subprocesses appropriately for now. To be improved.
+You may close connections by using the command `Connect: Show connect bar` and click disconnect for your elm project
+
+
+== Contributing
+Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
+
+== History
+only a future so far !
+
+== License
+MIT, same as Light Table. See LICENSE.md for details.
+
+
+
+
+
+
+
+
+

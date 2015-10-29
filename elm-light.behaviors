@@ -8,14 +8,27 @@
  [:editor.elm :lt.plugins.elm-light/elm-browse!]
 
  [:editor.elm :lt.plugins.elm-light/on-eval.one]
+ [:editor.elm.repl :lt.plugins.elm-light/on-eval.one]
  [:editor.elm :lt.plugins.elm-light/eval-err]
+ [:editor.elm.repl :lt.plugins.elm-light/eval-err]
  [:editor.elm :lt.plugins.elm-light/eval-result]
+ [:editor.elm.repl :lt.plugins.elm-light/eval-result]
  [:editor.elm :lt.plugins.elm-light/repl-restart!]
  [:editor.elm :lt.plugins.elm-light/repl-restart-res]
  [:elm.lang :lt.plugins.elm-light/eval!]
 
+ [:elmrepl :lt.plugins.elm-light/repl-destroy-on-close]
+ [:elmrepl :lt.plugins.elm-light/repl-close-parent]
+ [:elmrepl :lt.plugins.elm-light/on-focus-repl-ed]
+ [:elmrepl :lt.plugins.elm-light/on-show-repl-refresh-eds]
+ [:elmrepl :lt.object/add-tag :docable]
+
  [:editor.elm :lt.plugins.elm-light/lint]
  [:editor.elm :lt.plugins.elm-light/elm-lint-res]
+
+ [:editor.elm :lt.plugins.elm-light/make]
+ [:editor.elm :lt.plugins.elm-light/elm-make-res]
+
  [:editor.elm :lt.plugins.elm-light/use-local-hints]
  [:editor.elm :lt.plugins.elm-light/trigger-update-hints]
  [:editor.elm :lt.plugins.elm-light/finish-update-hints]
