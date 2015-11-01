@@ -1,5 +1,6 @@
 (ns lt.plugins.elm-light
-  (:require [lt.object :as object]
+  (:require [lt.plugins.elm-light.selection :as elm-sel]
+            [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
             [lt.objs.editor :as editor]
@@ -455,24 +456,14 @@
 
 
 
-;; (defn get-top-level-expr [ed pos]
-;;   (let [curr-tok (editor/->token ed pos)]
-;;     (println "Curr tok: " curr-tok)
-;;     (case (:type curr-tok)
-;;       "qualifier" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-;;       "variable" (str (get-top-level-expr ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-;;       "")))
 
 
-
-;; (cmd/command {:command :elm.select.top.level
-;;               :desc "Elm: Select top level expression from current cursor position"
-;;               :exec (fn []
-;;                       (when-let [ed (pool/last-active)]
-;;                         (let [[res client] (clients/discover :editor.eval.elm (:info ed))]
-;;                           (println res))
-;;                         ;(println (get-top-level-expr ed (editor/->cursor ed)))
-;;                         ))})
+(cmd/command {:command :elm.select.top.level
+              :desc "Elm: Select top level expression from current cursor position"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (when-let [rng (elm-sel/get-top-level-expr ed (editor/->cursor ed))]
+                          (editor/set-selection ed (:from rng) (:to rng)))))})
 
 
 ;;****************************************************
