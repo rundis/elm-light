@@ -57,7 +57,11 @@
         }
 
         if (ch == '"') {
-          return switchState(source, setState, stringLiteral);
+          if(source.match('""')) {
+            return switchState(source, setState, nstring(1));
+          } else {
+            return switchState(source, setState, stringLiteral);
+          }
         }
 
         if (largeRE.test(ch)) {
@@ -136,6 +140,29 @@
         return type;
       }
     }
+
+    function nstring(nest) {
+      if (nest == 0) {
+        return normal();
+      }
+      return function(source, setState) {
+        var currNest = nest;
+        while (!source.eol()) {
+          var ch = source.next();
+          if(ch == '"' && source.match('""')) {
+            --currNest
+            if(currNest == 0) {
+              setState(normal());
+              return "string";
+            }
+          }
+        }
+        setState(nstring(currNest));
+        return "string";
+      }
+    }
+
+
 
     function stringLiteral(source, setState) {
       while (!source.eol()) {
