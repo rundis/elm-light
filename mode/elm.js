@@ -223,7 +223,10 @@
         var t = state.f(stream, function(s) { state.f = s; });
         var w = stream.current();
         return (wellKnownWords.hasOwnProperty(w)) ? wellKnownWords[w] : t;
-      }
+      },
+      lineComment: "--",
+      blockCommentStart: "{-",
+      blockCommentEnd: "-}"
     };
 
   });

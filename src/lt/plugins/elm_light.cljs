@@ -541,3 +541,27 @@
                       (add-repl))})
 
 
+
+;; ****************************************************
+;; Enhancements to be contributed to LT core
+;; ****************************************************
+
+
+(defn block-comment [ed from to opts]
+  (.blockComment (editor/->cm-ed ed) (clj->js from) (clj->js to) (clj->js opts)))
+
+(cmd/command {:command :toggle-comment-selection-block-aware
+              :desc "Editor: Toggle comment line(s) block aware"
+              :exec (fn []
+                      (when-let [cur (pool/last-active)]
+                        (let [cursor (editor/->cursor cur "start")
+                              [start end] (if (editor/selection? cur)
+                                            [cursor (editor/->cursor cur "end")]
+                                            [cursor cursor])]
+                          (when-not (editor/uncomment cur start end)
+                            (if-not (= (:line start) (:line end))
+                              (block-comment cur cursor end (::comment-options @cur))
+                              (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
+
+
+

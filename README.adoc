@@ -167,6 +167,22 @@ to terminate both these subprocesses appropriately for now. To be improved.
 You may close connections by using the command `Connect: Show connect bar` and click disconnect for your elm project
 
 
+=== Note on editor commands
+
+==== Commenting
+Light Table out of the box doesn't support block commenting (well it only supports uncommenting block comments currently)
+
+.For your pleasure I've provided a remedy for this
+- Either just invoke the command: "Editor: Toggle comment line(s) block aware"
+- or even better add something like this to your ueer.keymap;
+
+[source,clojure]
+----
+  [:editor "cmd-shift-," :toggle-comment-selection-block-aware] ; modify keybinding to your liking !
+----
+
+
+
 == Contributing
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
