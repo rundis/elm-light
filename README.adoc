@@ -27,6 +27,10 @@ Alternatively you can clone it into `$LT_USER_HOME\plugins`.
 
 NOTE: Only tested with elm-platform 0.15.1 using Mac OS/X. **Windows will (most likely) not work currently**.
 
+== Resources
+* http://rundis.github.io/blog/2015/elm_light.html[ScreenCast] - Demo of the features available in the first release of the plugin
+* http://elm-lang.org/[elm-lang.org] - The home of Elm
+* https://github.com/LightTable/LightTable[Light Table] - GithHub home of Light Table
 
 == Overview
 
