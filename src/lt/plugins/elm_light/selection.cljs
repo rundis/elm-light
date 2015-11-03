@@ -28,6 +28,7 @@
      :else (recur (dec line)))))
 
 (defn get-top-level-line-down [ed start-line]
+
   (let [last-line (editor/last-line ed)]
     (loop [line start-line]
       (cond

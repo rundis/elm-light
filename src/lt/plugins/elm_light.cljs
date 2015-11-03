@@ -107,6 +107,8 @@
                                               to the project. Here's what we got:" [:pre (:buffer @this)]]
                                        :buttons [{:label "close"}]})
                         (clients/rem! (:client @this)))
+                      (when-let [client (:client @this)]
+                        (release-reactor-port (:dir @client)))
                       (proc/kill-all (:procs @this))
                       (object/destroy! this)))
 
@@ -125,6 +127,8 @@
 (defn- bash-escape-spaces [s]
   (when s (clojure.string/replace s " " "\\ ")))
 
+
+; TODO: Release used port later on when possible !
 (defn start-elm-client[{:keys [path proj-path client] :as props}]
   (let [obj (object/create ::connecting-notifier client)
         client-id (clients/->id client)]
@@ -334,10 +338,17 @@
           :reaction (fn [ed]
                       (let [pos (editor/->cursor ed)
                             info (conj (:info @ed)
-                                  (if (editor/selection? ed)
-                                    {:code (editor/selection ed) :meta {:start (-> (editor/->cursor ed "start") :line)
-                                                                        :end (-> (editor/->cursor ed "end") :line)}}
-                                    {:pos pos :code (editor/line ed (:line pos)) :meta {:start (:line pos) :end (:line pos)}}))]
+                                       (if (editor/selection? ed)
+                                         {:code (editor/selection ed) :meta {:start (-> (editor/->cursor ed "start") :line)
+                                                                             :end (-> (editor/->cursor ed "end") :line)}}
+                                         (if-let [rng (elm-sel/get-top-level-expr ed pos )]
+                                           {:pos pos
+                                            :code (editor/range ed (:from rng) (:to rng))
+                                            :meta {:start (-> rng :from :line)
+                                                    :end (-> rng :end :line)}}
+                                           {:pos pos
+                                            :code (editor/line ed (:line pos))
+                                            :meta {:start (:line pos) :end (:line pos)}})))]
                         (object/raise elm :eval! {:origin ed :info info}))))
 
 
@@ -394,10 +405,10 @@
 
 
 
-
+;TODO : Make debug optional !
 (behavior ::elm-browse!
           :triggers #{:elm.browse}
-          :reaction (fn [ed]
+          :reaction (fn [ed debug?]
                       (let [path (reactor-path (-> @ed :info :path))
                             client (eval/get-client! {:command :editor.eval.elm
                                                       :origin ed
@@ -407,7 +418,7 @@
                           (notifos/working "Opening elm file in browser")
                           (let [b (or (first (object/by-tag :browser))
                                       (browser/add))
-                                get-url #(str "http://localhost:" (:reactor-port @client) path "?debug")]
+                                get-url #(str "http://localhost:" (:reactor-port @client) path (if debug? "?debug" ""))]
 
                             (if (:connected @client)
                               (object/raise b :navigate! (get-url))
@@ -446,7 +457,13 @@
               :desc "Elm: View current elm file in browser (elm-reactor)"
               :exec (fn []
                       (when-let [ed (pool/last-active)]
-                        (object/raise ed :elm.browse)))})
+                        (object/raise ed :elm.browse false)))})
+
+(cmd/command {:command :elm.browse.debug
+              :desc "Elm: View current elm file in browser with debugger (elm-reactor)"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.browse true)))})
 
 (cmd/command {:command :elm.restart-repl
               :desc "Elm: Restart repl for current project"
@@ -482,14 +499,12 @@
 (behavior ::repl-destroy-on-close
           :triggers #{:close}
           :reaction (fn [this]
-                      (println "close elmrepl")
                       (object/raise (:main @this) :close)
                       (object/destroy! this)))
 
 (behavior ::repl-close-parent
           :triggers #{:destroy}
           :reaction (fn [this]
-                      (println "destroy repl parent")
                       (object/destroy! (:frame @this))))
 
 (behavior ::on-show-repl-refresh-eds

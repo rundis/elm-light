@@ -1,6 +1,6 @@
 = Elm LightTable plugin
 Elm language plugin for Light Table
-v0.1.0, 2015-10-20: published
+v0.1.1, 2015-11-03: published
 :library: Asciidoctor
 :numbered:
 :idprefix:
@@ -77,6 +77,11 @@ Hence the root path and project name will be the same
 will assume it belongs to the same elm-client and use that.
 
 
+=== A few disclaimers/general notes
+* If an operation takes some time to respond, it might be that it's because elm is installing packages (first time or you've changed the elm-package.json file)
+* If stuff does't work and you don't get anything sensible indicating why not, it's work trying to remove the folder elm-stuff and run `elm-package install`
+at the command line to see if packages installs correctly (I've experienced that it's not always reliable...)
+
 
 == Usage
 
@@ -132,15 +137,16 @@ Once connected to an elm-project in Light Table, a repl is started running in th
 This means you can evaluate statements from within any given elm editor.
 
 * In an elm file:
-* If a single line with no line breaks;
-** just position the cursor on the line and press `cmd+enter"
-** Otherwise select the region that constitutes a top level statement and press `cmd+enter`
+* Position the cursor within the region of a top level expression and press `cmd+enter`.
+* You may also select a region that constitutes of one or more top level statements and press `cmd+enter`
+** **However** results are shown next to the first line of the selection, even though the actual result might be the related to the
+   last statement (or if an error, whatever line caused the error)
 * results are shown inline
 
 
 You may reset the repl to start with a clean slate. Just select the command: `Elm: Restart repl for current project`
 
-NOTE: Only one top-level statement at the time can be eval'ed. Also the repl is shared
+NOTE: Results are currently only showed sensibly if you eval one top level statement at a time. Also the repl is shared
 between all elm editors for a given project.
 
 === "Anonymous" repl
@@ -155,8 +161,10 @@ NOTE: You need a connected elm project for this to work
 When you connect an elm project, elm-reactor is started in the background.
 To support multiple projects running in parallell each projects elm-reactor gets a port from the port-range (3000 - 4000)
 
-A convenience command has been added to view an elm file in the Light Table internal browser.
-Select the command `Elm: View current elm file in browser (elm-reactor)`
+Convenience commands has been added to view an elm file in the Light Table internal browser.
+.Either
+* Select the command `Elm: View current elm file in browser (elm-reactor)`
+* or `Elm: `Elm: View current elm file in browser with debugger (elm-reactor)` if you wish the debugger panel opened by default
 
 
 TIP: If you get a blank page (and/or an error in the console about the address not being available), it might be
@@ -168,6 +176,21 @@ You may close connections by using the command `Connect: Show connect bar` and c
 
 
 === Note on editor commands
+
+
+==== Select top-level statements
+If you wish to select a top level statement just invoke the command `Elm: Select top level expression from current expression`
+
+NOTE: The selection algorithm is sort of naive, so there might be cases when the selection doesn't work out quite as you'd hope.
+In most cases it should work sensibly though.
+
+
+.To enable as keyboard shortcut in both elm editors and anonymous elm repl
+[source,clojure]
+----
+  [:editor.elm.common "alt-shift-s" :elm.select.top.level] ; modify keybinding to your liking !
+----
+
 
 ==== Commenting
 Light Table out of the box doesn't support block commenting (well it only supports uncommenting block comments currently)
@@ -187,7 +210,14 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
-0.1.0 Initial release
+* 0.1.1 Maintenance release:
+** Feature to select top level expressions
+** Eval in repl with no selection automatically selects top level expression based on cursor position
+** Syntax highlight multiline strings `"""`
+** Allow user to select to browse file in reactor with or without debugger
+** Fix: Allow reuse of released reactor ports
+** Add tag :editor.elm.common to allow users to configure common behaviors/commands for repl and editors more easily
+* 0.1.0 Initial release
 
 == License
 MIT, same as Light Table. See LICENSE.md for details.
