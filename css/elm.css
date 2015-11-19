@@ -1,0 +1,84 @@
+.package-table {
+  padding-bottom: 10px;
+}
+
+.package-table th {
+  border-bottom: 2px solid red;
+  font-weight: bold;
+}
+
+.package-table td, .package-table th {
+   padding: 2px 8px 2px 4px;
+}
+
+
+.add-package {
+  margin-top: 10px;
+  /*border: 1px solid red;*/
+}
+
+.add-package h3 {
+  font-size: 16px;
+}
+
+.form-row label {
+  display: block;
+  margin-right: 10px;
+}
+
+
+.add-package :focus {
+    /* -webkit-focus-ring-color = '#5B9DD9' */
+    outline: -webkit-focus-ring-color auto 5px;
+}
+
+.add-package select {
+  font-size: inherit;
+  font-family: inherit;
+  font-size: 90%;
+  color: white;
+  background: #3b3f41;
+  border: 1px solid #3b3f41;
+  padding: 2px;
+  max-height: 20em;
+}
+
+.add-package .versions {
+  margin-left: 10px;
+}
+
+.add-package .btn {
+  margin-left: 10px;
+}
+
+
+.autocomplete-dropdown {
+  position: relative;
+}
+
+.autocomplete-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0px;
+  display: block;
+  background: #3b3f41;
+  max-height: 300px;
+  width: 250px;
+  overflow: auto;
+
+ -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+}
+
+
+.autocomplete-dropdown-item {
+  padding: 0 4px 0 4px;
+}
+
+
+.autocomplete-active {
+  background: #616161;
+  color: #f4f4f4;
+}
+
+.autocomplete-dropdown-item.row:hover {cursor: pointer; cursor: hand;}

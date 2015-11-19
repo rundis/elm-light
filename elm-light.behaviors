@@ -1,4 +1,5 @@
 [[:app :lt.objs.plugins/load-js ["mode/elm.js" "elm-light_compiled.js"]]
+ [:aoo :lt.objs.plugins/load-css ["css/elm.css"]]
  [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]
 
 
@@ -43,5 +44,9 @@
  [:sidebar.docs.search :lt.plugins.elm-light/elm-doc-search]
  [:editor.elm :lt.plugins.elm-light/elm-doc]
  [:editor.elm :lt.plugins.elm-light/print-elm-doc]
+
+
+ [:elm.packages :lt.plugins.elm-light.packages/show-project-packages]
+ [:elm.packages :lt.plugins.elm-light.packages/on-close-project-packages]
 
  ]

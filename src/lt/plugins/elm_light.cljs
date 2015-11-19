@@ -1,5 +1,6 @@
 (ns lt.plugins.elm-light
   (:require [lt.plugins.elm-light.selection :as elm-sel]
+            [lt.plugins.elm-light.utils :refer [find-symbol project-path reactor-path]]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -37,42 +38,6 @@
 
 (defn release-reactor-port [path]
   (.release harbor path))
-
-
-(defn symbol-token? [s]
-  (re-seq #"[\w\$_\-\.\*\+\/\?\><!]" s))
-
-(defn find-symbol-at-cursor [ed]
-  (let [loc (editor/->cursor ed)
-        token-left (editor/->token ed loc)
-        token-right (editor/->token ed (update-in loc [:ch] inc))]
-    (or (when (symbol-token? (:string token-right))
-          (assoc token-right :loc loc))
-        (when (symbol-token? (:string token-left))
-          (assoc token-left :loc loc)))))
-
-
-(defn find-symbol [ed pos]
-  (let [curr-tok (editor/->token ed pos)]
-    (case (:type curr-tok)
-      "qualifier" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-      "variable" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
-      "")))
-
-
-
-(defn- project-path [path]
-  (if (files/dir? path)
-    path
-    (if-let [pkg-json (files/walk-up-find path "elm-package.json")]
-      (files/parent pkg-json)
-      nil ;(files/parent path)
-      )))
-
-(defn reactor-path [path]
-  (let [root (project-path path)]
-    (when (= (.indexOf path root) 0)
-      (subs path (count root)))))
 
 
 
@@ -119,10 +84,6 @@
                         (object/merge! this {:client client :buffer ""})
                         nil))
 
-(defn- escape-spaces [s]
-  (if (= files/separator "\\")
-      (str "\"" s "\"")
-      s))
 
 (defn- bash-escape-spaces [s]
   (when s (clojure.string/replace s " " "\\ ")))
