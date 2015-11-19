@@ -1,6 +1,6 @@
 = Elm LightTable plugin
 Elm language plugin for Light Table
-v0.1.1, 2015-11-03: published
+v0.1.2, 2015-11-19: published
 :library: Asciidoctor
 :numbered:
 :idprefix:
@@ -179,6 +179,55 @@ to terminate both these subprocesses appropriately for now. To be improved.
 You may close connections by using the command `Connect: Show connect bar` and click disconnect for your elm project
 
 
+
+=== Package management
+The plugin has an interface for doing some handy package related task. It's basically a thin wrapper over
+the elm-package command with a UI to give you a better overview.
+
+image::elm-light-pkgs.png[width=500]
+
+==== Open package manager
+From an editor with any file under your project, select the command `Elm: Show project packages`
+
+NOTE: You need to have a working network connection, as the it retrieves package info from the central elm package repository
+
+
+==== Add a new package
+* Search for a given package in the section for adding packages
+* Use up/down arrows to navigate the dropdown
+* Use enter to select the package you wish to add
+* Select the version of the package you wish to install
+* Click `Add package`
+* Check the status bar/console log for feedback on progress and success/failure
+* If all goes well the view of packages gets updated (as will you elm-package.json file in the background as well)
+
+NOTE: The feedback from elm-package install is not always the most helpful when there are problems. Sometimes
+it even reports success when nothing has been done. Check out the github repo for elm-package for follow up on issues
+related to this. Be adviced that when a package is listed with the `exact` column empty, means something didn't go well
+, eventhough elm-package might have reported success.
+
+==== Remove package
+You can remove packages that are specified in your elm-package.json.
+
+* Click on the `remove` button
+next to the package in the listing.
+* Your elm-package.json file will get updated
+* elm-package install invoked to clean up
+* The listing will be updated (with potential transitive deps removed too)
+
+==== Handling other cases
+Sometimes you need to edit your `elm-package.json` file directly for elm-package to know what to do.
+There might also be the case you have defined a `elm-package.json` but haven't yet invoked any elm command
+that resulted in package install. For such cases the `Refresh packages` button comes in handy !
+
+==== Package docs
+For any packages installed (with an exact version) you may view the online docs:
+
+* In the list click on the package name
+* A LT browser tab is opened (or focused if one already exists) and the package doc for the selected package
+is displayed
+
+
 === Note on editor commands
 
 
@@ -214,6 +263,7 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.1.2 UI for managing your project packages
 * 0.1.1 Maintenance release:
 ** Feature to select top level expressions
 ** Eval in repl with no selection automatically selects top level expression based on cursor position
