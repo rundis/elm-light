@@ -2,6 +2,10 @@
   padding-bottom: 10px;
 }
 
+.package-table > tbody > tr:first-child {
+  line-height: 20px;
+}
+
 .package-table th {
   border-bottom: 2px solid red;
   font-weight: bold;
@@ -10,6 +14,18 @@
 .package-table td, .package-table th {
    padding: 2px 8px 2px 4px;
 }
+
+.project-packages button {
+  border: 2px darkgray solid;
+  padding: 4px;
+  background: inherit;
+}
+
+.project-packages .link:hover {
+  text-decoration: underline;
+  cursor: hand;
+}
+
 
 
 .add-package {
@@ -35,12 +51,10 @@
 .add-package select {
   font-size: inherit;
   font-family: inherit;
-  font-size: 90%;
   color: white;
-  background: #3b3f41;
-  border: 1px solid #3b3f41;
-  padding: 2px;
-  max-height: 20em;
+  background: #616161;
+  border: 1px solid #616161;
+  padding: 4px;
 }
 
 .add-package .versions {

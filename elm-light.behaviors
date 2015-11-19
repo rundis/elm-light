@@ -1,5 +1,5 @@
 [[:app :lt.objs.plugins/load-js ["mode/elm.js" "elm-light_compiled.js"]]
- [:aoo :lt.objs.plugins/load-css ["css/elm.css"]]
+ [:app :lt.objs.plugins/load-css "css/elm.css"]
  [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]
 
 

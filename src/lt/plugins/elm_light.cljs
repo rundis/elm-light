@@ -171,8 +171,7 @@
           :reaction (fn [ed res]
                       (let [path (-> @ed :info :path)]
                         (notifos/done-working "Elm linted")
-                        (when (seq (filter #(= "error" (:type %)) res))
-                          )
+                        (println res)
                         (display-make-results ed res path))))
 
 

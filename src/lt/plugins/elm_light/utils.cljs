@@ -24,3 +24,17 @@
   (let [root (project-path path)]
     (when (= (.indexOf path root) 0)
       (subs path (count root)))))
+
+(defn parse-json-file [json-file]
+  (when (files/exists? json-file)
+    (-> (->> (files/open-sync json-file)
+             :content
+             (.parse js/JSON))
+        (js->clj :keywordize-keys true))))
+
+
+(defn pretty-json [data]
+  (.stringify js/JSON (clj->js data) null 4))
+
+(defn nskw->name [kw]
+  (str (namespace kw) "/" (name kw)))

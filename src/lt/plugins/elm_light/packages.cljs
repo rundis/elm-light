@@ -1,5 +1,5 @@
 (ns lt.plugins.elm-light.packages
-  (:require [lt.plugins.elm-light.utils :refer [project-path]]
+  (:require [lt.plugins.elm-light.utils :as u]
             [lt.plugins.elm-light.autocompleter :as ac]
             [fetch.core :as fetch]
             [lt.objs.files :as files]
@@ -9,6 +9,7 @@
             [lt.objs.editor.pool :as pool]
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
+            [lt.objs.browser :as browser]
             [lt.util.dom :as dom]
             [quiescent :as q :include-macros true]
             [quiescent.dom :as d]
@@ -24,52 +25,36 @@
                (let [pkgs (js->clj (.parse js/JSON data) :keywordize-keys true)]
                  (callback pkgs)))))
 
-(defn parse-pkg-json [pkg-json]
-  (when (files/exists? pkg-json)
-    (-> (->> (files/open-sync pkg-json)
-             :content
-             (.parse js/JSON))
-        (js->clj :keywordize-keys true))))
 
-
-
-(defn pretty-json [data]
-  (.stringify js/JSON (clj->js data) null 4))
-
-(defn nskw->name [kw]
-  (str (namespace kw) "/" (name kw)))
 
 (defn remove-pkg [path pkg]
   (let [pkg-file (files/join path "elm-package.json")]
-    (-> (parse-pkg-json pkg-file)
+    (-> (u/parse-json-file pkg-file)
         (update-in [:dependencies] (fn [deps]
 
                                      (-> (into {}
                                                (map (fn [[k v]]
                                                       [( nskw->name k) v]) deps))
                                          (dissoc pkg))))
-        pretty-json
+        u/pretty-json
         ((partial files/save pkg-file)))))
 
 
 (defn get-project-deps [project-path]
-  (let [to-name #(str (namespace %) "/" (name %))
-        pkg-json (files/join project-path "elm-package.json")
+  (let [pkg-json (files/join project-path "elm-package.json")
         deps-json (files/join project-path "elm-stuff" "exact-dependencies.json")]
 
-    (->> (parse-pkg-json pkg-json)
+    (->> (u/parse-json-file pkg-json)
          :dependencies
          (mapv (fn [[k v]]
-                 {:package (to-name k) :range v}))
-         (concat (->> (parse-pkg-json deps-json)
+                 {:package (u/nskw->name k) :range v}))
+         (concat (->> (u/parse-json-file deps-json)
                       (mapv (fn [[k v]]
-                              {:package (to-name k) :exact v}))))
+                              {:package (u/nskw->name k) :exact v}))))
          (group-by :package)
          (mapv (fn [[_ vs]] (apply merge vs))))))
 
 
-
-(get-project-deps "/Users/mrundberget/projects/hello-elm")
 
 (defui project-wrapper [this]
   [:div.elm
@@ -84,25 +69,14 @@
                         (project-wrapper this)))
 
 
-(def elm-packages (object/create ::elm-packages))
 
-;; (doseq [obj (object/by-tag :elm.packages)]
-;;       (println "Destroying")
-;;       (object/destroy! obj))
+(declare elm-packages)
 
 
 ;; react rendering
 (declare render)
 
 
-(defn filter-packages [token pkgs]
-  (vec
-   (filter (fn [pkg]
-             (> (.indexOf (s/lower-case (:name pkg)) (s/lower-case token)) -1)) pkgs)))
-
-
-(defn idx-active [items]
-  (first (keep-indexed #(when (:active %2) %1) items)))
 
 
 (defn ensure-visible [this]
@@ -116,24 +90,41 @@
      :else nil)))
 
 
+;; stateless joy !
+
+(defn filter-packages [token pkgs]
+  (vec
+   (filter (fn [pkg]
+             (> (.indexOf (s/lower-case (:name pkg)) (s/lower-case token)) -1)) pkgs)))
+
+(defn idx-active [items]
+  (first (keep-indexed #(when (:active %2) %1) items)))
+
+(defn move-down [items]
+  (when-not (empty? items)
+    (-> (assoc-in items [(idx-active items) :active] false)
+        (assoc-in [(min (dec (count items)) (inc (idx-active items))) :active] true))))
+
+(defn move-up [items]
+  (when-not (empty? items)
+    (-> (assoc-in items [(idx-active items) :active] false)
+        (assoc-in [(max 0 (dec (idx-active items))) :active] true))))
+
+
+;; Warning - Mutants ahead
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn on-pkg-down []
-  (let [items (:ac-packages @elm-packages)]
-    (when-not (empty? items)
-      (object/assoc-in! elm-packages [:ac-packages (idx-active items) :active] false)
-      (object/assoc-in! elm-packages [:ac-packages (min (dec (count items)) (inc (idx-active items))) :active] true)
-      (render {})
-      (ensure-visible elm-packages))))
+  (object/update! elm-packages [:ac-packages] move-down)
+  (render {})
+  (ensure-visible elm-packages))
+
+
 
 (defn on-pkg-up []
-  (let [items (:ac-packages @elm-packages)]
-    (when-not (empty? items)
-      (object/assoc-in! elm-packages [:ac-packages (idx-active items) :active] false)
-      (object/assoc-in! elm-packages [:ac-packages (max 0 (dec (idx-active items))) :active] true)
-      (render {})
-      (ensure-visible elm-packages))))
-
-
+  (object/update! elm-packages [:ac-packages] move-up)
+  (render {})
+  (ensure-visible elm-packages))
 
 
 (defn on-pkg-sel []
@@ -198,6 +189,16 @@
   (object/assoc-in! elm-packages [:ac-version] v)
   (render {}))
 
+(defn on-pkg-browse [pkg version]
+  (let [url (str "http://package.elm-lang.org/packages/" pkg "/" version)
+        b (or (first (object/by-tag :browser))
+              (browser/add))]
+    (tabs/add-or-focus! b)
+    (object/raise b :navigate! url)))
+
+
+;; React view components
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (q/defcomponent AddPackageForm [props]
   (d/div
@@ -206,10 +207,12 @@
    (ac/AutoComplete (:ac-props props))))
 
 (q/defcomponent PackageRow
-  [{:keys [package range exact on-remove]}]
+  [{:keys [package range exact on-remove on-browse]}]
   (d/tr
    {}
-   (d/td {} package)
+   (d/td {} (if (and package exact)
+              (d/span {:className "link" :onClick #(on-browse package exact)} package)
+              package) )
    (d/td {} range)
    (d/td {} exact)
    (d/td {} (when range
@@ -227,7 +230,11 @@
      (d/th {} "Exact")
      (d/th {} "")))
    (apply d/tbody {}
-          (map #(PackageRow (assoc % :on-remove (:on-remove props)) ) (:packages props)))))
+          (map #(PackageRow (assoc %
+                              :on-remove (:on-remove props)
+                              :on-browse (:on-browse props)))
+               (:packages props)))))
+
 
 (q/defcomponent ProjectPackages [props]
   (d/div {:className "project-packages"}
@@ -237,6 +244,31 @@
          (AddPackageForm props)))
 
 
+
+(defn render [props]
+  (q/render (ProjectPackages (merge props {:path (:path @elm-packages)
+                                           :packages (:packages @elm-packages)
+                                           :on-pkg-refresh on-pkg-refresh
+                                           :on-remove on-remove-pkg
+                                           :on-browse on-pkg-browse
+                                           :ac-props {:items (:ac-packages @elm-packages)
+                                                      :value (:ac-package @elm-packages)
+                                                      :versions (:ac-versions @elm-packages)
+                                                      :version (:ac-version @elm-packages)
+                                                      :on-change on-pkg-change
+                                                      :on-up on-pkg-up
+                                                      :on-down on-pkg-down
+                                                      :on-select on-pkg-sel
+                                                      :on-blur on-pkg-blur
+                                                      :on-cancel on-pkg-cancel
+                                                      :on-change-version on-change-version
+                                                      :on-add-package on-add-package}
+                                           :all-packages (:all-packages @elm-packages)}))
+            (.getElementById js/document "project-packages-wrapper")))
+
+
+;; Behaviours and commands
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (behavior ::on-close-project-packages
           :triggers #{:close}
@@ -256,33 +288,25 @@
                       (render {})))
 
 
+(def elm-packages (object/create ::elm-packages))
 
-(defn render [props]
-  (q/render (ProjectPackages (merge props {:path (:path @elm-packages)
-                                           :packages (:packages @elm-packages)
-                                           :ts (js/Date)
-                                           :on-pkg-refresh on-pkg-refresh
-                                           :on-remove on-remove-pkg
-                                           :ac-props {:items (:ac-packages @elm-packages)
-                                                      :value (:ac-package @elm-packages)
-                                                      :versions (:ac-versions @elm-packages)
-                                                      :version (:ac-version @elm-packages)
-                                                      :on-change on-pkg-change
-                                                      :on-up on-pkg-up
-                                                      :on-down on-pkg-down
-                                                      :on-select on-pkg-sel
-                                                      :on-blur on-pkg-blur
-                                                      :on-cancel on-pkg-cancel
-                                                      :on-change-version on-change-version
-                                                      :on-add-package on-add-package}
-                                           :all-packages (:all-packages @elm-packages)}))
-            (.getElementById js/document "project-packages-wrapper")))
+;; (doseq [obj (object/by-tag :elm.packages)]
+;;       (println "Destroying")
+;;       (object/destroy! obj))
+
+
+
+
+
 
 
 (cmd/command {:command :show-elm-project-packages
               :desc "Elm: Show project packages"
               :exec (fn []
                       (when-let [ed (pool/last-active)]
-                        (when-let [path (-> @ed :info :path project-path)]
+                        (when-let [path (-> @ed :info :path u/project-path)]
                           (object/raise elm-packages :elm.show.project.packages path))))})
+
+
+
 
