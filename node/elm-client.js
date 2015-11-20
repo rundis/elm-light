@@ -258,6 +258,18 @@ function handleClose() {
 }
 
 
+function parseMakeResults(data) {
+  var results =
+      data.split("\n")
+          .filter(function(s) { return s.indexOf("[{") === 0;})
+          .map(function (item) { return JSON.parse(item); })
+  if (results.length > 0) {
+    results = results.reduce(function(a, b) {return a.concat(b);});
+  }
+  return results;
+}
+
+
 function handleLint(clientId, msg) {
   var elmCmd = "elm-make " + msg.path + " --warn --yes --report=json --output=/dev/null";
 
@@ -267,13 +279,7 @@ function handleLint(clientId, msg) {
   }
 
   cp.exec(elmCmd, {cwd: msg['project-path']}, function (error, stdout, stderr) {
-    var results =
-        stdout.split("\n")
-              .filter(function(s) { return s.indexOf("[{") === 0;})
-              .map(function (item) { return JSON.parse(item); });
-    if (results.length > 0) {
-      results = results.reduce(function(a, b) {return a.concat(b);});
-    }
+    var results = parseMakeResults(stdout);
 
     send([clientId, "elm.lint.res", results]);
   });
@@ -295,14 +301,7 @@ function handleMake(clientId, msg) {
   var elmCmd = "elm-make " + msg.path + " --warn --yes --report=json --output=" + outputFile;
 
   cp.exec(elmCmd, {cwd: msg['project-path']}, function (error, stdout, stderr) {
-    var results =
-        stdout.split("\n")
-              .filter(function(s) { return s.indexOf("[{") === 0;})
-              .map(function (item) { return JSON.parse(item);
-              });
-    if (results.length > 0) {
-      results = results.reduce(function(a, b) {return a.concat(b);});
-    }
+    var results = parseMakeResults(stdout);
 
     send([clientId, "elm.make.res", results]);
   });

@@ -19,7 +19,8 @@
             [lt.objs.eval :as eval]
             [lt.objs.sidebar.clients :as scl]
             [lt.plugins.auto-complete :as auto-complete]
-            [lt.util.js :as js-util])
+            [lt.util.js :as js-util]
+            [clojure.string :as s])
   (:require-macros [lt.macros :refer [behavior]]))
 
 
@@ -132,6 +133,18 @@
 
 
 
+(defn colorize-msg [msg]
+  (-> msg
+      (s/replace #"\[\d+m" "")
+      (s/replace #"\[0m" "")))
+
+
+;(colorize-msg "[33mInt[0m -> [33mInt[0m -> [33mInt[0m")
+
+
+
+
+
 (defn display-make-results [ed res path]
   (when (seq (filter #(= "error" (:type %)) res))
     (notifos/set-msg! "Elm make returned errors; check you editor or the console for details"
@@ -139,19 +152,19 @@
 
 
   (doseq [l (filter #(and (= path (:file %)) (= "warning" (:type %))) res)]
-                          (object/raise ed
-                                        :editor.result
-                                        (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)}))
+    (object/raise ed
+                  :editor.result
+                  (str (:overview l) "\n" (colorize-msg (:details l))) {:line (-> l :region :start :line dec)}))
   (doseq [l (filter #(= "error" (:type %)) res)]
-                          (if (= path (:file l))
-                            (object/raise ed
-                                          :editor.exception
-                                          (str (:overview l) "\n" (:details l)) {:line (-> l :region :start :line dec)})
+    (if (= path (:file l))
+      (object/raise ed
+                    :editor.exception
+                    (str (:overview l) "\n" (colorize-msg (:details l))) {:line (-> l :region :start :line dec)})
 
-                            (let [out (:overview l)]
-                                (console/verbatim
-                                   (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
-                                   "error")))))
+      (let [out (:overview l)]
+        (console/verbatim
+         (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
+         "error")))))
 
 (behavior ::lint
           :description "Lint (/make) a given elm file"
@@ -171,7 +184,6 @@
           :reaction (fn [ed res]
                       (let [path (-> @ed :info :path)]
                         (notifos/done-working "Elm linted")
-                        (println res)
                         (display-make-results ed res path))))
 
 

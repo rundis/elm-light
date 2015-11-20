@@ -31,10 +31,9 @@
   (let [pkg-file (files/join path "elm-package.json")]
     (-> (u/parse-json-file pkg-file)
         (update-in [:dependencies] (fn [deps]
-
                                      (-> (into {}
                                                (map (fn [[k v]]
-                                                      [( nskw->name k) v]) deps))
+                                                      [(u/nskw->name k) v]) deps))
                                          (dissoc pkg))))
         u/pretty-json
         ((partial files/save pkg-file)))))
