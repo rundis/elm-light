@@ -263,6 +263,7 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.1.3 Bugfix: Forgot to include react.js (used for rendering package ui)
 * 0.1.2 Package manager and 0.16.0 fix
 ** UI for managing your project packages.
 ** 0.16.0 fix: Remove ansi color codes from errors and warnings shown inline

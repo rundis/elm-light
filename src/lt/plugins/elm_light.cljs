@@ -229,7 +229,6 @@
                                           command (assoc info :token token) :only ed))))))
 
 
-
 (defn create-hints [completions]
   (map #(do #js {:completion (:completion %)
                  :text (:text %)})
@@ -541,5 +540,14 @@
                               (block-comment cur cursor end (::comment-options @cur))
                               (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
 
+
+;; WebSocket trials coming up....
+;; (let [sck (js/WebSocket. "ws://localhost:3000/socket?file=hello.elm")]
+;;   (println "Sck: " sck)
+;;   (set! (.-onopen sck) (fn [evt]
+;;                          (println "On open !")))
+;;   (set! (.-onmessage sck) (fn [evt]
+;;                             (println "We got a message ")
+;;                             (.log js/console evt))))
 
 
