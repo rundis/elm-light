@@ -263,7 +263,9 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
-* 0.1.2 UI for managing your project packages
+* 0.1.2 Package manager and 0.16.0 fix
+** UI for managing your project packages.
+** 0.16.0 fix: Remove ansi color codes from errors and warnings shown inline
 * 0.1.1 Maintenance release:
 ** Feature to select top level expressions
 ** Eval in repl with no selection automatically selects top level expression based on cursor position
