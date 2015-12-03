@@ -413,6 +413,10 @@ function handleSingleDoc(clientId, msg) {
                     loc: msg.loc};
           });
 
+      if (items.length > 1) {
+        items = items.filter(function (x) {return x.ns === msg.sym;});
+      }
+
       send([clientId, "editor.elm.doc.result", items.length === 1 ? items[0] : null]);
     } else {
       send([clientId, "editor.elm.doc.result", null]);
