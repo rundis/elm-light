@@ -1,3 +1,8 @@
+/* linting */
+
+
+
+
 .package-table {
   padding-bottom: 10px;
 }
@@ -96,3 +101,56 @@
 }
 
 .autocomplete-dropdown-item.row:hover {cursor: pointer; cursor: hand;}
+
+/** Linter specifix styling **/
+
+.CodeMirror .lint-error {
+  border-bottom:  3px solid darkred;
+  background-color: inherit;
+}
+
+.CodeMirror .lint-warning {
+  border-bottom:  2px solid #FFFFCC;
+  background-color: inherit;
+}
+
+
+div.linter-res {
+  z-index: 1000;
+  top: 100%;
+  left: 0px;
+  display:block;
+  position:absolute;
+  overflow:hidden;
+  box-sizing:border-box;
+  padding: 5px;
+  -webkit-user-select: text;
+}
+
+span.lint-status {
+  padding: 0 5px 0 5px;
+}
+
+div.linter-res.error, span.lint-status.error {
+  background: #73404c;
+  color: #ffa6a6;
+}
+
+div.linter-res.warning, span.lint-status.warning {
+  background: #FFFFCC;
+  color: #7f8000;
+}
+
+
+div.linter-res.open {
+  display:block;
+}
+
+div.linter-res .title {
+  font-weight: bold;
+  padding-bottom: 5px;
+  text-decoration: underline;
+}
+
+
+}

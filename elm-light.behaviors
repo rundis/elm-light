@@ -49,4 +49,10 @@
  [:elm.packages :lt.plugins.elm-light.packages/show-project-packages]
  [:elm.packages :lt.plugins.elm-light.packages/on-close-project-packages]
 
+
+ ;; linter behaviors. TODO: Move to linter plugin eventually
+ [:editor.elm :lt.plugins.elm-light.linter/linter-result!]
+ [:editor.elm :lt.plugins.elm-light.linter/clear-linter-results!]
+ [:editor :lt.plugins.elm-light.linter/update-linter-on-editor-change]
+
  ]

@@ -139,32 +139,38 @@
       (s/replace #"\[0m" "")))
 
 
-;(colorize-msg "[33mInt[0m -> [33mInt[0m -> [33mInt[0m")
-
-
-
-
+(defn ->lt-range [{:keys [start end]}]
+  {:from {:ch (dec (:column start)) :line (dec (:line start))}
+   :to   {:ch (dec (:column end)) :line (dec (:line end))}})
 
 (defn display-make-results [ed res path]
+  (object/raise ed :clear-linter-results!)
   (when (seq (filter #(= "error" (:type %)) res))
     (notifos/set-msg! "Elm make returned errors; check you editor or the console for details"
                       {:class "error"}))
 
+  ;(prn res)
+  (doseq [{:keys [file type overview details region subregion tag]} res]
+    (let [{:keys [from to]} (->lt-range region)
+          msg (str overview "\n" (colorize-msg details))]
 
-  (doseq [l (filter #(and (= path (:file %)) (= "warning" (:type %))) res)]
-    (object/raise ed
-                  :editor.result
-                  (str (:overview l) "\n" (colorize-msg (:details l))) {:line (-> l :region :start :line dec)}))
-  (doseq [l (filter #(= "error" (:type %)) res)]
-    (if (= path (:file l))
-      (object/raise ed
-                    :editor.exception
-                    (str (:overview l) "\n" (colorize-msg (:details l))) {:line (-> l :region :start :line dec)})
+      (cond
+       (and (= path file) (= type "warning"))
+       (object/raise ed :linter-result! {:title tag
+                                         :details msg
+                                         :category :warning
+                                         :code-range (->lt-range (or subregion region))})
 
-      (let [out (:overview l)]
-        (console/verbatim
-         (list [:em.file (:file l)] [:em.line "[Elm error]"] ": " [:pre out])
-         "error")))))
+       (and (= path file) (= type "error"))
+       (object/raise ed :linter-result! {:title tag
+                                         :details msg
+                                         :category :error
+                                         :code-range (->lt-range (or subregion region))})
+
+       :else (console/verbatim
+              (list [:em.file file] [:em.line "[Elm error]"] ": " [:pre overview]) "error")))))
+
+
 
 (behavior ::lint
           :description "Lint (/make) a given elm file"
@@ -179,6 +185,8 @@
                         (clients/send cl
                                       :editor.elm.lint (assoc info :project-path (project-path (:path info)))
                                       :only ed))))
+
+
 (behavior ::elm-lint-res
           :triggers #{:elm.lint.res}
           :reaction (fn [ed res]
@@ -539,15 +547,3 @@
                             (if-not (= (:line start) (:line end))
                               (block-comment cur cursor end (::comment-options @cur))
                               (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
-
-
-;; WebSocket trials coming up....
-;; (let [sck (js/WebSocket. "ws://localhost:3000/socket?file=hello.elm")]
-;;   (println "Sck: " sck)
-;;   (set! (.-onopen sck) (fn [evt]
-;;                          (println "On open !")))
-;;   (set! (.-onmessage sck) (fn [evt]
-;;                             (println "We got a message ")
-;;                             (.log js/console evt))))
-
-
