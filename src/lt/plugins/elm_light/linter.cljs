@@ -44,8 +44,6 @@
 (statusbar/add-statusbar-item statusbar-lint-summary)
 
 
-(object/raise statusbar-lint-summary :update! #(assoc % :warnings 1 :errors 2))
-
 
 (defn- grouped-lint-count [ed]
   (if-let [results (:linter-results @ed)]

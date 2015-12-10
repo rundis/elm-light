@@ -55,4 +55,9 @@
  [:editor.elm :lt.plugins.elm-light.linter/clear-linter-results!]
  [:editor :lt.plugins.elm-light.linter/update-linter-on-editor-change]
 
+
+ ;; Test related behaviors
+ [:editor.elm :lt.plugins.elm-light.test/elm-test]
+ [:editor.elm :lt.plugins.elm-light.test/elm-test-init]
+
  ]

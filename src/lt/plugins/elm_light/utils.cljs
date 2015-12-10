@@ -1,6 +1,9 @@
 (ns lt.plugins.elm-light.utils
   (:require [lt.objs.files :as files]
-            [lt.objs.editor :as editor]))
+            [lt.objs.editor :as editor]
+            [lt.objs.plugins :as plugins]))
+
+(def elm-plugin-dir (plugins/find-plugin "elm-light"))
 
 
 (defn find-symbol [ed pos]
@@ -12,7 +15,7 @@
 
 
 
-(defn- project-path [path]
+(defn project-path [path]
   (if (files/dir? path)
     path
     (if-let [pkg-json (files/walk-up-find path "elm-package.json")]

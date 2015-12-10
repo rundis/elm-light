@@ -24,9 +24,9 @@
   (:require-macros [lt.macros :refer [behavior]]))
 
 
-
 (def elm-plugin-dir (plugins/find-plugin "elm-light"))
 (def elm-cilent-path (files/join elm-plugin-dir "node" "elm-client.js"))
+
 
 
 
@@ -547,3 +547,6 @@
                             (if-not (= (:line start) (:line end))
                               (block-comment cur cursor end (::comment-options @cur))
                               (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
+
+
+(.execSync (js/require "child_process") "ls")
