@@ -113,13 +113,16 @@
 ;(run-tests "/Users/mrundberget/projects/elm-sweeper/test/TestRunner.elm")
 
 
+
 (behavior ::elm-test
           :triggers #{:elm.test}
           :reaction (fn [ed]
                       (let [path (-> @ed :info :path)
-                            ;v (editor/->val ed)
-                            ]
-                        (run-tests path))))
+                            v (editor/->val ed)]
+                        (if (or (elm-utils/str-contains v "consoleRunner")
+                                (elm-utils/str-contains v "Console"))
+                          (run-tests path)
+                          (object/raise ed :elm.browse false)))))
 
 (behavior ::elm-test-init
           :triggers #{:elm.test.init}

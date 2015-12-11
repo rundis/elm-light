@@ -6,6 +6,11 @@
 (def elm-plugin-dir (plugins/find-plugin "elm-light"))
 
 
+(defn str-contains [s v]
+  (> (.indexOf s v) -1))
+
+
+
 (defn find-symbol [ed pos]
   (let [curr-tok (editor/->token ed pos)]
     (case (:type curr-tok)

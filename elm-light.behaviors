@@ -60,4 +60,7 @@
  [:editor.elm :lt.plugins.elm-light.test/elm-test]
  [:editor.elm :lt.plugins.elm-light.test/elm-test-init]
 
+ ;; Elm format
+ [:editor.elm :lt.plugins.elm-light/elm-format]
+
  ]

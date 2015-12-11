@@ -527,6 +527,39 @@
 
 
 
+
+;; ****************************************************
+;; Elm format
+;; ****************************************************
+(behavior ::elm-format
+          :triggers #{:elm.format}
+          :reaction (fn [ed]
+                      (when-let [path (-> @ed :info :path)]
+                        (let [pos (editor/->cursor ed)
+                              cmd (str "elm-format --yes " path)]
+                          (try
+                            (.execSync (js/require "child_process")
+                                       cmd
+                                       {:cwd (project-path path)})
+                            (catch :default e
+                              (notifos/set-msg! "Elm format reported errors. See console for details" {:class "error" :timeout 5000})
+                              (console/error (.-message e))))
+                          (pool/reload ed)
+                          (editor/move-cursor ed pos)))))
+
+(cmd/command {:command :elm-format
+              :desc "Elm: Format file"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.format)))})
+
+
+
+
+
+
+
+
 ;; ****************************************************
 ;; Enhancements to be contributed to LT core
 ;; ****************************************************
@@ -549,4 +582,4 @@
                               (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
 
 
-(.execSync (js/require "child_process") "ls")
+
