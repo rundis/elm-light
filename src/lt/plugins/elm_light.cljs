@@ -1,6 +1,7 @@
 (ns lt.plugins.elm-light
   (:require [lt.plugins.elm-light.selection :as elm-sel]
             [lt.plugins.elm-light.utils :refer [find-symbol project-path reactor-path]]
+            [lt.plugins.elm-light.clients :refer [try-connect]]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -9,12 +10,9 @@
             [lt.objs.notifos :as notifos]
             [lt.objs.console :as console]
             [lt.objs.clients :as clients]
-            [lt.objs.clients.tcp :as tcp]
-            [lt.objs.proc :as proc]
             [lt.objs.popup :as popup]
             [lt.objs.dialogs :as dialogs]
             [lt.objs.files :as files]
-            [lt.objs.plugins :as plugins]
             [lt.objs.browser :as browser]
             [lt.objs.eval :as eval]
             [lt.objs.sidebar.clients :as scl]
@@ -23,105 +21,6 @@
             [clojure.string :as s])
   (:require-macros [lt.macros :refer [behavior]]))
 
-
-(def elm-plugin-dir (plugins/find-plugin "elm-light"))
-(def elm-cilent-path (files/join elm-plugin-dir "node" "elm-client.js"))
-
-
-
-
-(def harbor
-  ((js/require "harbor") 3000, 4000))
-
-
-(defn claim-reactor-port [path cb]
-  (.claim harbor path cb))
-
-(defn release-reactor-port [path]
-  (.release harbor path))
-
-
-
-(behavior ::on-out
-          :triggers #{:proc.out}
-          :reaction (fn [this data]
-                      (let [out (.toString data)]
-                        (if (> (.indexOf out "Connected") -1)
-                          (do
-                            (notifos/done-working)
-                            (object/merge! this {:connected true}))
-                          (do
-                            (println out))))))
-
-(behavior ::on-error
-          :triggers #{:proc.error}
-          :reaction (fn [this data]
-                      (let [out (.toString data)]
-                        (if-not (:connected @this)
-                          (object/update! this [:buffer] str data)
-                          (console/error out)))))
-
-
-(behavior ::on-exit
-          :triggers #{:proc.exit}
-          :reaction (fn [this data]
-                      (when (and (not (:connected @this)) (seq (:buffer @this)))
-                        (notifos/done-working)
-                        ;; hm seems to enter here even when we exit using the disconnect button in the side connect bar
-                        (popup/popup! {:header "We couldn't connect."
-                                       :body [:span "Looks like there was an issue trying to connect
-                                              to the project. Here's what we got:" [:pre (:buffer @this)]]
-                                       :buttons [{:label "close"}]})
-                        (clients/rem! (:client @this)))
-                      (when-let [client (:client @this)]
-                        (release-reactor-port (:dir @client)))
-                      (proc/kill-all (:procs @this))
-                      (object/destroy! this)))
-
-(object/object* ::connecting-notifier
-                :triggers []
-                :behaviors [::on-exit ::on-error ::on-out]
-                :init (fn [this client]
-                        (object/merge! this {:client client :buffer ""})
-                        nil))
-
-
-(defn- bash-escape-spaces [s]
-  (when s (clojure.string/replace s " " "\\ ")))
-
-
-; TODO: Release used port later on when possible !
-(defn start-elm-client[{:keys [path proj-path client] :as props}]
-  (let [obj (object/create ::connecting-notifier client)
-        client-id (clients/->id client)]
-    (notifos/working "Connecting..")
-    (claim-reactor-port
-     proj-path (fn [err port]
-                 (object/merge! client {:dir proj-path
-                                        :reactor-port port})
-                 (proc/exec {:command js/process.execPath
-                             :args [elm-cilent-path tcp/port client-id (-> proj-path bash-escape-spaces) port]
-                             :cwd elm-plugin-dir
-                             :env {"ATOM_SHELL_INTERNAL_RUN_AS_NODE" 1}
-                             :obj obj})))))
-
-
-
-(defn try-connect [{:keys [info] :as props}]
-  (let [path (:path info)
-        proj-path (project-path path)
-        client (clients/client! :elm-client)]
-
-    (if proj-path
-      (start-elm-client {:path path
-                         :proj-path proj-path
-                         :client client})
-
-      (do
-        (notifos/done-working)
-        (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
-        (clients/rem! client)))
-    client))
 
 
 
@@ -162,7 +61,7 @@
                                          :code-range (->lt-range (or subregion region))})
 
        (and (= path file) (= type "error"))
-       (object/raise ed :linter-result! {:title tag
+       (object/raise ed :linter-result! {:titshle tag
                                          :details msg
                                          :category :error
                                          :code-range (->lt-range (or subregion region))})
@@ -540,7 +439,8 @@
                           (try
                             (.execSync (js/require "child_process")
                                        cmd
-                                       {:cwd (project-path path)})
+                                       (clj->js {:cwd (project-path path)
+                                                 :stdio "pipe"}))
                             (catch :default e
                               (notifos/set-msg! "Elm format reported errors. See console for details" {:class "error" :timeout 5000})
                               (console/error (.-message e))))
@@ -552,34 +452,3 @@
               :exec (fn []
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.format)))})
-
-
-
-
-
-
-
-
-;; ****************************************************
-;; Enhancements to be contributed to LT core
-;; ****************************************************
-
-
-(defn block-comment [ed from to opts]
-  (.blockComment (editor/->cm-ed ed) (clj->js from) (clj->js to) (clj->js opts)))
-
-(cmd/command {:command :toggle-comment-selection-block-aware
-              :desc "Editor: Toggle comment line(s) block aware"
-              :exec (fn []
-                      (when-let [cur (pool/last-active)]
-                        (let [cursor (editor/->cursor cur "start")
-                              [start end] (if (editor/selection? cur)
-                                            [cursor (editor/->cursor cur "end")]
-                                            [cursor cursor])]
-                          (when-not (editor/uncomment cur start end)
-                            (if-not (= (:line start) (:line end))
-                              (block-comment cur cursor end (::comment-options @cur))
-                              (editor/line-comment cur cursor (editor/->cursor cur "end") (::comment-options @cur)))))))})
-
-
-
