@@ -25,7 +25,7 @@ Alternatively you can clone it into `$LT_USER_HOME\plugins`.
 * For all commands/features you will need to have a project folder with a `elm-package.json` file
 
 
-NOTE: Only tested with elm-platform 0.15.1 using Mac OS/X. **Windows will (most likely) not work currently**.
+NOTE: Tested with elm 0.16.0 on OS/X 10.9.5, Ubuntu 14.04 and Windows 10.
 
 == Resources
 * http://rundis.github.io/blog/2015/elm_light.html[ScreenCast] - Demo of the features available in the first release of the plugin
@@ -344,6 +344,7 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.0 Added windows support. See github release notes for details
 * 0.2.0 Improved linting, introduced test support and support for elm-format
 * 0.1.3 Bugfix: Forgot to include react.js (used for rendering package ui)
 * 0.1.2 Package manager and 0.16.0 fix
