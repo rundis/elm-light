@@ -292,6 +292,27 @@ For any packages installed (with an exact version) you may view the online docs:
 is displayed
 
 
+=== Dependency graph
+
+image::elm-dep-graph.png[width=800]
+
+You may view an inline dependency graph of you project dependencie.
+
+.Either
+* From any file under your project root invoke the command `Elm: Show dependency graph`
+* Alternatively click the `Show dependency graph` button from the package viewer
+
+.Additional info
+* Dashed arrows reprensents transitive dependencies
+* If you hover of a dependency you will see a short package summary
+* Dependencies found in elm-package.json that `elm-package` failed to install will
+be shown with a red color
+* When you update packages in the package viewer, the graph is automatically refreshed
+
+
+
+NOTE: You will need an internet connection for this to work (uses package.elm.lang.org)
+
 === Elm format
 In an effort to standardize how Elm code should be formatted, https://github.com/avh4/elm-format[elm-format] was
 created. It is still in alpha, but I figured you might just as well start playing with it.
@@ -344,6 +365,7 @@ Light Table out of the box doesn't support block commenting (well it only suppor
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.1 Added an inline project dependency graph (using d3)
 * 0.3.0 Added windows support. See github release notes for details
 * 0.2.0 Improved linting, introduced test support and support for elm-format
 * 0.1.3 Bugfix: Forgot to include react.js (used for rendering package ui)

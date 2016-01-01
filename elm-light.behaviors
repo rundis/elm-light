@@ -1,5 +1,7 @@
-[[:app :lt.objs.plugins/load-js ["mode/elm.js" "react.min.js" "elm-light_compiled.js"]]
+[[:app :lt.objs.plugins/load-js ["mode/elm.js" "js/react.min.js" "elm-light_compiled.js"]]
  [:app :lt.objs.plugins/load-css "css/elm.css"]
+ [:app :lt.objs.plugins/load-css "css/graph.css"]
+
  [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]
 
 
@@ -62,5 +64,13 @@
 
  ;; Elm format
  [:editor.elm :lt.plugins.elm-light/elm-format]
+
+ ;; dependency graph stuff
+ [:elm.graph.dependency :lt.plugins.elm-light.graph/on-show-dependencies]
+ [:elm.graph.dependency :lt.plugins.elm-light.graph/on-get-data]
+ [:elm.graph.dependency :lt.plugins.elm-light.graph/on-render]
+ [:elm.graph.dependency :lt.plugins.elm-light.graph/on-get-transitives]
+ [:elm.graph.dependency :lt.plugins.elm-light.graph/on-close-destroy]
+ [:tabset :lt.plugins.elm-light.graph/on-tab-resized]
 
  ]

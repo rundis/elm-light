@@ -1,0 +1,52 @@
+div.graph {
+  width: 100%;
+  height: 100%;
+
+}
+div.dependency-graph {
+
+}
+
+.dependency-graph svg {
+    background-color: inherit;
+}
+
+.dependency-graph .node rect, .dependency-graph .node ellipse {
+    stroke: white;
+    stroke-width: 1.5px;
+    fill: #ccc;
+}
+
+.dependency-graph .edgeLabel {
+  fill: #ccc;
+}
+
+.dependency-graph .edgeLabel rect {
+    fill: #ccc;
+}
+
+.dependency-graph .edgePath {
+    stroke: white;
+    stroke-width: 1.5px;
+    fill: none;
+}
+
+div.graph-label {
+  padding: 3px;
+  text-align:center;
+  color: black;
+}
+
+div.graph-label.error {
+  color: #ffa6a6;
+}
+
+
+div.graph-label.clickable {
+  font-weight: bold;
+}
+
+.clickable:hover {
+  text-decoration: underline;
+  cursor: hand;
+}

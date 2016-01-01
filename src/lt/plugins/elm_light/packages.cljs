@@ -1,7 +1,7 @@
 (ns lt.plugins.elm-light.packages
   (:require [lt.plugins.elm-light.utils :as u]
+            [lt.plugins.elm-light.graph :as graph]
             [lt.plugins.elm-light.autocompleter :as ac]
-            [fetch.core :as fetch]
             [lt.objs.files :as files]
             [lt.objs.tabs :as tabs]
             [lt.object :as object]
@@ -18,13 +18,6 @@
   (:require-macros [lt.macros :refer [defui behavior]]))
 
 
-(defn fetch-packages [callback]
-  (fetch/xhr (str "http://package.elm-lang.org/all-packages?date=" (.getTime (new js/Date)))
-             {}
-             (fn [data]
-               (let [pkgs (js->clj (.parse js/JSON data) :keywordize-keys true)]
-                 (callback pkgs)))))
-
 
 
 (defn remove-pkg [path pkg]
@@ -39,22 +32,6 @@
         ((partial files/save pkg-file)))))
 
 
-(defn get-project-deps [project-path]
-  (let [pkg-json (files/join project-path "elm-package.json")
-        deps-json (files/join project-path "elm-stuff" "exact-dependencies.json")]
-
-    (->> (u/parse-json-file pkg-json)
-         :dependencies
-         (mapv (fn [[k v]]
-                 {:package (u/nskw->name k) :range v}))
-         (concat (->> (u/parse-json-file deps-json)
-                      (mapv (fn [[k v]]
-                              {:package (u/nskw->name k) :exact v}))))
-         (group-by :package)
-         (mapv (fn [[_ vs]] (apply merge vs))))))
-
-
-
 (defui project-wrapper [this]
   [:div.elm
    [:div {:id "project-packages-wrapper"} "Retrieving project package info..."]])
@@ -64,7 +41,7 @@
                 :label "Elm project packages"
                 :name "Elm project packages"
                 :init (fn [this]
-                        (fetch-packages #(object/merge! this {:all-packages %}))
+                        (u/fetch-all-packages #(object/merge! this {:all-packages %}))
                         (project-wrapper this)))
 
 
@@ -169,7 +146,11 @@
                           (if (= % 0 )
                             (notifos/done-working)
                             (notifos/set-msg! "Error installing elm package" {:class "error" :timeout 5000}))
-                          (object/raise elm-packages :elm.show.project.packages (:path @elm-packages))))
+                          (object/raise elm-packages :elm.show.project.packages (:path @elm-packages))
+                          (object/raise graph/dependency-graph
+                                        :elm.graph.show-dependencies
+                                        (:path @elm-packages)
+                                        false)))
       (.stdout.on proc "data" #(notifos/msg* (str "Package install: " %) {:timeout 5000}))
       (.stderr.on proc "data" #(console/error (str %))))))
 
@@ -195,6 +176,12 @@
     (tabs/add-or-focus! b)
     (object/raise b :navigate! url)))
 
+
+(defn on-show-graph []
+  (object/raise graph/dependency-graph
+                :elm.graph.show-dependencies
+                (:path @elm-packages)
+                true))
 
 ;; React view components
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -240,6 +227,8 @@
          (d/h1 {} (str (files/basename (:path props)) " - packages"))
          (PackageTable props)
          (d/button {:onClick #((:on-pkg-refresh props))} "Refresh packages")
+         (d/button {:onClick #((:on-show-graph props))
+                    :style {:marginLeft "10px"}} "Show dependency graph")
          (AddPackageForm props)))
 
 
@@ -250,6 +239,7 @@
                                            :on-pkg-refresh on-pkg-refresh
                                            :on-remove on-remove-pkg
                                            :on-browse on-pkg-browse
+                                           :on-show-graph on-show-graph
                                            :ac-props {:items (:ac-packages @elm-packages)
                                                       :value (:ac-package @elm-packages)
                                                       :versions (:ac-versions @elm-packages)
@@ -283,7 +273,7 @@
                       (object/assoc-in! elm-packages [:ac-versions] [])
                       (object/assoc-in! elm-packages [:ac-version] nil)
                       (object/assoc-in! elm-packages [:path] path)
-                      (object/assoc-in! elm-packages [:packages] (get-project-deps path))
+                      (object/assoc-in! elm-packages [:packages] (u/get-project-deps path))
                       (render {})))
 
 
@@ -292,8 +282,6 @@
 ;; (doseq [obj (object/by-tag :elm.packages)]
 ;;       (println "Destroying")
 ;;       (object/destroy! obj))
-
-
 
 
 
