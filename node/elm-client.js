@@ -93,6 +93,15 @@ function maybeRemoveLastLine (x) {
 }
 
 
+
+function stripReplNewLines(x) {
+  var arr = x.split(" ");
+  var idx = arr.findIndex(function(v, i, a) { return v !== "" && v !== "|"; });
+  return idx > -1 ? arr.slice(idx).join(" ") : "";
+}
+
+
+
 function handleEval(clientId, msg) {
   var meta = msg.meta;
 
@@ -104,8 +113,8 @@ function handleEval(clientId, msg) {
       send([clientId, "editor.elm.eval.err", {result: errBuff, meta: meta}]);
       return;
     }
-    outBuff += data.toString();
-    if (outBuff === "> ") {
+    outBuff += stripReplNewLines(data.toString());
+    if (outBuff.trim() === ">") {
       send([clientId, "editor.elm.eval.res", {result: "✓", meta: meta}]);
       return;
     }
@@ -134,6 +143,8 @@ function handleEval(clientId, msg) {
 
   elmGlobals.repl.stdin.write(msg.code.replace(/\n/g, "\\\n") + "\n");
 }
+
+
 
 
 function parseMakeResults(data) {
