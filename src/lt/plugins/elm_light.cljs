@@ -31,7 +31,6 @@
                       (notifos/set-msg! (:err res) {:class "error"})))
 
 
-
 (defn colorize-msg [msg]
   (-> msg
       (s/replace #"\[\d+m" "")
