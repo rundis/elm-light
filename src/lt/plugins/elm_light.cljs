@@ -136,7 +136,7 @@
 
 
 
-(js/CodeMirror.extendMode "elm" (clj->js {:hint-pattern #"[\w_\.]"}))
+(js/CodeMirror.extendMode "elm" (clj->js {:hint-pattern #"[\w_\.$]"}))
 
 (defn- maybe-trim-prefix [token completion]
   (if (> (.indexOf "." token) -1)
@@ -152,20 +152,21 @@
           :triggers #{:editor.elm.hints.result}
           :reaction (fn [ed res]
                       (when [res]
-                        (object/merge! ed {::hints (create-hints (::token ed) res)})
+                        (object/assoc-in! ed [::hints] (create-hints (::token ed) res))
                         (object/raise auto-complete/hinter :refresh!))
                       (notifos/done-working)))
 
+
 (behavior ::use-local-hints
           :triggers #{:hints+}
-          :reaction (fn [ed hints _]
+          :reaction (fn [ed hints tok]
                       (let [token (find-symbol ed (editor/->cursor ed))]
-                        (when (not= token (::token @ed))
-                         (object/merge! ed {::token token})
-                         (object/raise ed :editor.elm.hints.update!)))
+                        (when (and (seq token) (not= token (::token @ed)))
+                          (object/merge! ed {::token token})
+                          (object/raise ed :editor.elm.hints.update!)))
                       (if-let [elm-hints (::hints @ed)]
-                        (concat elm-hints hints)
-                        hints)))
+                        elm-hints
+                        [])))
 
 
 (behavior ::connect

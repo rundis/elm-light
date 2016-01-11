@@ -1,6 +1,7 @@
 (ns lt.plugins.elm-light.utils
   (:require [lt.objs.files :as files]
             [lt.objs.editor :as editor]
+            [lt.objs.editor.pool :as pool]
             [lt.objs.plugins :as plugins]
             [fetch.core :as fetch]))
 
@@ -17,6 +18,8 @@
     (case (:type curr-tok)
       "qualifier" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "variable" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "variable-2" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "variable-3" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "")))
 
 
