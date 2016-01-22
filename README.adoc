@@ -349,6 +349,7 @@ In most cases it should work sensibly though.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.3 Fix compatibility with LT 0.8.1. Also tweaked the autocompletion to be a little faster and more accurate.
 * 0.3.2 Module aware autocomplete and remove leading pipes from repl results
 * 0.3.1 Added an inline project dependency graph (using d3)
 * 0.3.0 Added windows support. See github release notes for details
