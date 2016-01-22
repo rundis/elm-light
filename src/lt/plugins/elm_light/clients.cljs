@@ -16,7 +16,7 @@
 
 
 (def harbor
-  ((js/require "harbor") 3000, 4000))
+  ((js/require (files/join elm-node-path "harbor")) 3000, 4000))
 
 (defn claim-reactor-port [path cb]
   (.claim harbor path cb))
