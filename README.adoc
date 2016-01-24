@@ -111,7 +111,7 @@ NOTE: Rember to save. Linting works on saved files !
 TIP: Linting on save
 If you wish to lint on save just add the following to your user behaviors
 
-[:editor.elm "ctrl-s" :save :elm.lint]
+[:editor.elm :lt.objs.editor.file/on-save :elm.lint]
 ----
 
 
