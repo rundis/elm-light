@@ -321,10 +321,43 @@ created. It is still in alpha, but I figured you might just as well start playin
 You will need to install elm-format and make sure the executable is available in your path for it to work from
 the plugin. You'll find install instructions on the https://github.com/avh4/elm-format[elm-format] readme.
 
+
+.Format editor contents
+* With an elm file open, select the command `Elm: Format editor contents`
+* If no errors the whole editor is formatted (but any format changes aren't saved)
+* If there are any errors (typically syntax errors), a message is shown in the Statusbar and details can be found in the console
+
+
+.Format top level expression
+If for some reason you find yourself wanting to just format a top level expression, this is the command for you.
+* Place the cursor somewhere within the top level expression you wish to format
+* Select the command `Elm: Format top level expression at point`
+
+
 .Format a file
 * With an elm file open, select the command `Elm: Format file`
-* Voila file formatted
-* If there are any errors (typically syntax errors), a message is shown in the Statusbar and details can be found in the console
+
+WARNING: Any unsaved changes will be lost when running this command. This command updates the file backing the editor
+in question.
+
+
+
+.Adding keyboard shortcuts
+[source,clojure]
+----
+
+ [:editor.elm.common "cmd-shift-l" :elm-format-expression]
+ [:editor.elm.common "cmd-ctrl-l"  :elm-format-buffer]
+----
+
+
+----
+TIP: Format and Lint on save
+If you wish to format and lint on every save just add the following to your user behaviors
+
+[:editor.elm "ctrl-s" :save :elm-format :elm.lint]
+----
+
 
 
 
@@ -349,6 +382,8 @@ In most cases it should work sensibly though.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.4 Updated to supprt elm-format 0.2-alpha
+** Added format buffer (keeps unsaved changes) and format expression commands
 * 0.3.3 Fix compatibility with LT 0.8.1. Also tweaked the autocompletion to be a little faster and more accurate.
 * 0.3.2 Module aware autocomplete and remove leading pipes from repl results
 * 0.3.1 Added an inline project dependency graph (using d3)
