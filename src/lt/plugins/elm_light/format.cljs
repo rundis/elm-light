@@ -1,6 +1,7 @@
 (ns lt.plugins.elm-light.format
   (:require [lt.plugins.elm-light.utils :as u]
             [lt.plugins.elm-light.selection :as sel]
+            [lt.plugins.elm-light.clients :as clients]
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
             [lt.object :as object]
@@ -21,9 +22,12 @@
     [true (.toString (.execSync (js/require "child_process")
                                 "elm-format --stdin"
                                 (clj->js {:cwd cwd
-                                          :input input})))]
+                                          :input input
+                                          :stdio "pipe"})))]
     (catch :default e
       [false (.-message e)])))
+
+
 
 
 (defn format-path
