@@ -353,9 +353,12 @@ in question.
 
 ----
 TIP: Format and Lint on save
-If you wish to format and lint on every save just add the following to your user behaviors
+If you wish to format and lint on every save just add the following to your user keymap
 
-[:editor.elm "ctrl-s" :save :elm-format :elm.lint]
+```[:editor.elm "ctrl-s" :save :elm-format :elm.lint]```
+
+However if you added linting when saving to your user behaviors, you would want to remove that otherwise you'll
+be double linting !
 ----
 
 
