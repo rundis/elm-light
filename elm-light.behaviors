@@ -63,7 +63,11 @@
  [:editor.elm :lt.plugins.elm-light.test/elm-test-init]
 
  ;; Elm format
- [:editor.elm :lt.plugins.elm-light/elm-format]
+ [:editor.elm :lt.plugins.elm-light.format/elm-format]
+ [:editor.elm.common :lt.plugins.elm-light.format/elm-format-expression]
+ [:editor.elm.common :lt.plugins.elm-light.format/elm-format-buffer]
+
+
 
  ;; dependency graph stuff
  [:elm.graph.dependency :lt.plugins.elm-light.graph/on-show-dependencies]
