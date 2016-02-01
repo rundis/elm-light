@@ -44,7 +44,7 @@ is a small node process that the plugin typically will spawn automatically for a
 . Listens for commands from light table (eval, docs, autocompletions etc)
 
 
-.You may also manually connect to an elm project using the connect bare in Light Table
+.You may also manually connect to an elm project using the connect bar in Light Table
 * Invoke the command: `Connect: Add Connection`
 * Select **Elm** from the list of client types
 * If all goes well you will get a confirmation in the status bar that the project is connected
@@ -83,7 +83,7 @@ will assume it belongs to the same elm-client and use that.
 
 === A few disclaimers/general notes
 * If an operation takes some time to respond, it might be that it's because elm is installing packages (first time or you've changed the elm-package.json file)
-* If stuff does't work and you don't get anything sensible indicating why not, it's work trying to remove the folder elm-stuff and run `elm-package install`
+* If stuff does't work and you don't get anything sensible indicating why not, it's worth trying to remove the folder elm-stuff and run `elm-package install`
 at the command line to see if packages installs correctly (I've experienced that it's not always reliable...)
 
 
@@ -205,8 +205,8 @@ Once connected to an elm-project in Light Table, a repl is started running in th
 This means you can evaluate statements from within any given elm editor.
 
 * In an elm file:
-* Position the cursor within the region of a top level expression and press `cmd+enter`.
-* You may also select a region that constitutes of one or more top level statements and press `cmd+enter`
+* Position the cursor within the region of a top level expression and press `cmd/ctrl+enter`.
+* You may also select a region that constitutes of one or more top level statements and press `cmd/ctrl+enter`
 ** **However** results are shown next to the first line of the selection, even though the actual result might be the related to the
    last statement (or if an error, whatever line caused the error)
 * results are shown inline
@@ -219,6 +219,7 @@ between all elm editors for a given project.
 
 === "Anonymous" repl
 You may also create a repl that isn't backed by a file
+
 * Select the command `Elm repl: Open a elm repl`
 * You may now eval code as for an Editor repl
 
@@ -230,6 +231,7 @@ When you connect an elm project, elm-reactor is started in the background.
 To support multiple projects running in parallell each projects elm-reactor gets a port from the port-range (3000 - 4000)
 
 Convenience commands has been added to view an elm file in the Light Table internal browser.
+
 .Either
 * Select the command `Elm: View current elm file in browser (elm-reactor)`
 * or `Elm: `Elm: View current elm file in browser with debugger (elm-reactor)` if you wish the debugger panel opened by default
@@ -253,7 +255,7 @@ image::elm-light-pkgs.png[width=500]
 ==== Open package manager
 From an editor with any file under your project, select the command `Elm: Show project packages`
 
-NOTE: You need to have a working network connection, as the it retrieves package info from the central elm package repository
+NOTE: You need to have a working network connection, as it retrieves package info from the central elm package repository
 
 
 ==== Add a new package
@@ -330,6 +332,7 @@ the plugin. You'll find install instructions on the https://github.com/avh4/elm-
 
 .Format top level expression
 If for some reason you find yourself wanting to just format a top level expression, this is the command for you.
+
 * Place the cursor somewhere within the top level expression you wish to format
 * Select the command `Elm: Format top level expression at point`
 
@@ -355,10 +358,9 @@ in question.
 TIP: Format and Lint on save
 If you wish to format and lint on every save just add the following to your user keymap
 
-```[:editor.elm "ctrl-s" :save :elm-format :elm.lint]```
+[:editor.elm "ctrl-s" :save :elm-format :elm.lint]
 
-However if you added linting when saving to your user behaviors, you would want to remove that otherwise you'll
-be double linting !
+However if you added linting when saving to your user behaviors, you would want to remove that otherwise you'll be double linting !
 ----
 
 
