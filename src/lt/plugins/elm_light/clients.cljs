@@ -54,7 +54,8 @@
     (.on (.-stdout worker) "data" (fn [msg]
                                     (println (str "out: " msg))))
     (.on (.-stderr worker) "data" (fn [err]
-                                    (println (str "Error from runner: " err))))
+                                    (notifos/set-msg! (str "Elm error: " err) {:class "error"})
+                                    (console/error err)))
     (.on worker "message" #(on-elm-message client %))
     (.on worker "exit" #(on-exit client))
     worker))

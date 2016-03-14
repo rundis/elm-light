@@ -165,9 +165,13 @@ function handleLint(clientId, msg) {
                [msg.path, "--warn", "--yes", "--report=json", "--output=/dev/null"],
                {cwd: process.cwd()});
 
-  // TODO: Handle error !
-  var lintResults = parseMakeResults(res.output[1].toString());
-  send([clientId, "elm.lint.res", lintResults]);
+  var err = res.output[2] + "";
+  if (err) {
+    send([clientId, "elm.make.err", err]);
+  } else {
+    var lintResults = parseMakeResults(res.output[1].toString());
+    send([clientId, "elm.lint.res", lintResults]);
+  }
 }
 
 function lowerFirstLetter(str) {
@@ -190,8 +194,14 @@ function handleMake(clientId, msg) {
                [msg.path, "--warn", "--yes", "--report=json", "--output=" + outputFile],
                {cwd: process.cwd()});
 
-  var results = parseMakeResults(res.output[1].toString());
-  send([clientId, "elm.make.res", results]);
+
+  var err = res.output[2] + "";
+  if (err.length > 1) {
+    send([clientId, "elm.make.err", err]);
+  } else {
+    var results = parseMakeResults(res.output[1].toString());
+    send([clientId, "elm.make.res", results]);
+  }
 }
 
 function aclSearch(args, callback) {

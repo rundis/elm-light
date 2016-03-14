@@ -114,6 +114,15 @@
                         (display-make-results ed res path))))
 
 
+(behavior ::elm-make-err
+          :triggers #{:elm.make.err}
+          :reaction (fn [ed res]
+                      (let [path (-> @ed :info :path)]
+                        (notifos/done-working "")
+                        (notifos/set-msg! (str "Elm make error: " res) {:class "error"})
+                        (console/log res {:class "error"}))))
+
+
 
 ;;****************************************************
 ;; autocomplete
