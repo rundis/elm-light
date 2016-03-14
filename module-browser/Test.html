@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta http-equiv="cache-control" content="max-age=0" />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+    <meta http-equiv="pragma" content="no-cache" />
+
+    <style>
+      li {
+        list-style: none;
+      }
+      ul {margin: 0; padding: 0}
+
+      .filter-list {
+        color: #ccc;
+      }
+      .filter-list em {
+        color: #c7e6ff;
+      }
+      .filter-list .selected,
+      .filter-list li:hover {
+        color: #f4f4f4;
+        background: #616161;
+      }
+
+      p {
+        padding: 0;
+        margin: 0;
+      }
+
+      p.binding { font-size: 8px;}
+
+    </style>
+
+  </head>
+  <body>
+    <div>
+      <div style="display:inline-block;width:500px;">
+        Left
+      </div>
+      <div style="display:inline-block;width:400px">
+        <div id="elm-module-browser">
+          Elm modul browser
+        </div>
+      </div>
+    </div>
+
+
+    <script type="text/javascript" src="/moduleBrowser.js"></script>
+    <!--script type="text/javascript" src="/_reactor/debug.js"></script-->
+
+    <script type="text/javascript">
+      //var main = Elm.fullscreen(Elm.Main, {initialPath: "/"});
+      var modbrowser = Elm.embed(Elm.ModuleBrowser, document.getElementById("elm-module-browser"), {modzPort: []});
+
+
+
+
+      var samplemoduls = [
+          {
+              "name": "Main",
+              "file": "/Users/mrundberget/projects/albums/frontend/Main.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "AlbumDetail",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/AlbumDetail.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "ArtistDetail",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/ArtistDetail.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "ArtistListing",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/ArtistListing.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "Home",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/Home.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "Routes",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/Routes.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "ServerApi",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/ServerApi.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "TrackRow",
+              "file": "/Users/mrundberget/projects/albums/frontend/src/TrackRow.elm",
+              "packageName": "frontend",
+              "version": "1.0.0"
+          },
+          {
+              "name": "History",
+              "packageName": "elm-community/elm-history",
+              "version": "1.0.1",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-community/elm-history/1.0.1/src/History.elm"
+          },
+          {
+              "name": "Effects",
+              "packageName": "evancz/elm-effects",
+              "version": "2.0.1",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-effects/2.0.1/src/Effects.elm"
+          },
+          {
+              "name": "Combine",
+              "packageName": "Bogdanp/elm-combine",
+              "version": "1.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/Bogdanp/elm-combine/1.2.0/src/Combine.elm"
+          },
+          {
+              "name": "Combine.Char",
+              "packageName": "Bogdanp/elm-combine",
+              "version": "1.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/Bogdanp/elm-combine/1.2.0/src/Combine/Char.elm"
+          },
+          {
+              "name": "Combine.Infix",
+              "packageName": "Bogdanp/elm-combine",
+              "version": "1.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/Bogdanp/elm-combine/1.2.0/src/Combine/Infix.elm"
+          },
+          {
+              "name": "Combine.Num",
+              "packageName": "Bogdanp/elm-combine",
+              "version": "1.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/Bogdanp/elm-combine/1.2.0/src/Combine/Num.elm"
+          },
+          {
+              "name": "VirtualDom",
+              "packageName": "evancz/virtual-dom",
+              "version": "2.1.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/virtual-dom/2.1.0/src/VirtualDom.elm"
+          },
+          {
+              "name": "Response",
+              "packageName": "etaque/elm-response",
+              "version": "1.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-response/1.0.0/src/Response.elm"
+          },
+          {
+              "name": "Easing",
+              "packageName": "Dandandan/Easing",
+              "version": "2.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/Dandandan/Easing/2.0.2/Easing.elm"
+          },
+          {
+              "name": "Http",
+              "packageName": "evancz/elm-http",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-http/3.0.0/src/Http.elm"
+          },
+          {
+              "name": "RouteParser",
+              "packageName": "etaque/elm-route-parser",
+              "version": "2.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-route-parser/2.2.0/src/RouteParser.elm"
+          },
+          {
+              "name": "RouteParser.QueryString",
+              "packageName": "etaque/elm-route-parser",
+              "version": "2.2.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-route-parser/2.2.0/src/RouteParser/QueryString.elm"
+          },
+          {
+              "name": "TransitRouter",
+              "packageName": "etaque/elm-transit-router",
+              "version": "1.0.1",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-transit-router/1.0.1/src/TransitRouter.elm"
+          },
+          {
+              "name": "List.Extra",
+              "packageName": "circuithub/elm-list-extra",
+              "version": "3.9.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/circuithub/elm-list-extra/3.9.0/src/List/Extra.elm"
+          },
+          {
+              "name": "Transit",
+              "packageName": "etaque/elm-transit",
+              "version": "5.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-transit/5.0.0/src/Transit.elm"
+          },
+          {
+              "name": "Html",
+              "packageName": "evancz/elm-html",
+              "version": "4.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-html/4.0.2/src/Html.elm"
+          },
+          {
+              "name": "Html.Attributes",
+              "packageName": "evancz/elm-html",
+              "version": "4.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-html/4.0.2/src/Html/Attributes.elm"
+          },
+          {
+              "name": "Html.Events",
+              "packageName": "evancz/elm-html",
+              "version": "4.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-html/4.0.2/src/Html/Events.elm"
+          },
+          {
+              "name": "Html.Lazy",
+              "packageName": "evancz/elm-html",
+              "version": "4.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/elm-html/4.0.2/src/Html/Lazy.elm"
+          },
+          {
+              "name": "TransitStyle",
+              "packageName": "etaque/elm-transit-style",
+              "version": "1.0.1",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/etaque/elm-transit-style/1.0.1/src/TransitStyle.elm"
+          },
+          {
+              "name": "Lazy",
+              "packageName": "maxsnew/lazy",
+              "version": "1.1.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/maxsnew/lazy/1.1.0/src/Lazy.elm"
+          },
+          {
+              "name": "Array",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Array.elm"
+          },
+          {
+              "name": "Basics",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Basics.elm"
+          },
+          {
+              "name": "Bitwise",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Bitwise.elm"
+          },
+          {
+              "name": "Char",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Char.elm"
+          },
+          {
+              "name": "Color",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Color.elm"
+          },
+          {
+              "name": "Date",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Date.elm"
+          },
+          {
+              "name": "Debug",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Debug.elm"
+          },
+          {
+              "name": "Dict",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Dict.elm"
+          },
+          {
+              "name": "Graphics.Element",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Graphics/Element.elm"
+          },
+          {
+              "name": "Graphics.Collage",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Graphics/Collage.elm"
+          },
+          {
+              "name": "Graphics.Input",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Graphics/Input.elm"
+          },
+          {
+              "name": "Graphics.Input.Field",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Graphics/Input/Field.elm"
+          },
+          {
+              "name": "Json.Decode",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Json/Decode.elm"
+          },
+          {
+              "name": "Json.Encode",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Json/Encode.elm"
+          },
+          {
+              "name": "Keyboard",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Keyboard.elm"
+          },
+          {
+              "name": "List",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/List.elm"
+          },
+          {
+              "name": "Maybe",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Maybe.elm"
+          },
+          {
+              "name": "Mouse",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Mouse.elm"
+          },
+          {
+              "name": "Random",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Random.elm"
+          },
+          {
+              "name": "Regex",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Regex.elm"
+          },
+          {
+              "name": "Result",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Result.elm"
+          },
+          {
+              "name": "Set",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Set.elm"
+          },
+          {
+              "name": "Signal",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Signal.elm"
+          },
+          {
+              "name": "String",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/String.elm"
+          },
+          {
+              "name": "Task",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Task.elm"
+          },
+          {
+              "name": "Text",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Text.elm"
+          },
+          {
+              "name": "Time",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Time.elm"
+          },
+          {
+              "name": "Touch",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Touch.elm"
+          },
+          {
+              "name": "Trampoline",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Trampoline.elm"
+          },
+          {
+              "name": "Transform2D",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Transform2D.elm"
+          },
+          {
+              "name": "Window",
+              "packageName": "elm-lang/core",
+              "version": "3.0.0",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/elm-lang/core/3.0.0/src/Window.elm"
+          },
+          {
+              "name": "Animation",
+              "packageName": "mgold/elm-animation",
+              "version": "1.0.3",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/mgold/elm-animation/1.0.3/Animation.elm"
+          },
+          {
+              "name": "StartApp",
+              "packageName": "evancz/start-app",
+              "version": "2.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/start-app/2.0.2/src/StartApp.elm"
+          },
+          {
+              "name": "StartApp.Simple",
+              "packageName": "evancz/start-app",
+              "version": "2.0.2",
+              "file": "/Users/mrundberget/projects/albums/frontend/elm-stuff/packageNames/evancz/start-app/2.0.2/src/StartApp/Simple.elm"
+          }
+      ];
+
+      modbrowser.ports.modzPort.send(samplemoduls);
+
+      modbrowser.ports.select.subscribe(function (file) {
+        console.log("Selected: " + file);
+      });
+
+      modbrowser.ports.changeSelection.subscribe(function () {
+        console.log("Module selection changed, ensure visible in div");
+      });
+
+
+    </script>
+
+  </body>
+</html>

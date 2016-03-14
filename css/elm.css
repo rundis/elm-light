@@ -152,5 +152,12 @@ div.linter-res .title {
   text-decoration: underline;
 }
 
+#elm-module-browser p.binding {
+  color: #ccc;
+  font-size: 8pt;
+  font-style: italic;
+}
 
+#elm-module-browser input {
+  width: 100%
 }
