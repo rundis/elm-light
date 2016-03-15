@@ -41,7 +41,8 @@
 (defn- get-package-modules [project-path]
   (->> (u/get-project-deps project-path)
        (filter :exact)
-       (mapcat (partial get-exposed-modules project-path))))
+       (mapcat (partial get-exposed-modules project-path))
+       (sort-by :name)))
 
 
 (defn- deduce-module-name [root-path elm-file-path]
@@ -67,7 +68,8 @@
                                  {:name (deduce-module-name (files/join project-path dir) x)
                                   :file x}))))))
          (map (fn [m]
-                (assoc m :packageName (files/basename project-path) :version (:version pck-json)))))))
+                (assoc m :packageName (files/basename project-path) :version (:version pck-json))))
+         (sort-by :name))))
 
 
 

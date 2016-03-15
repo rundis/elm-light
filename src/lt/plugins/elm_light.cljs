@@ -120,7 +120,7 @@
                       (let [path (-> @ed :info :path)]
                         (notifos/done-working "")
                         (notifos/set-msg! (str "Elm make error: " res) {:class "error"})
-                        (console/log res {:class "error"}))))
+                        (console/error res))))
 
 
 
