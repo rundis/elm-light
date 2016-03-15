@@ -365,6 +365,20 @@ However if you added linting when saving to your user behaviors, you would want 
 
 
 
+=== Module browser
+image::modulebrowser.png[width=800]
+
+.To view your project modules:
+* From an open elm editor
+* Select the command : **Elm: Show module-browser**
+* Use the arrow keys to move the selection up or down
+* The list of modules is filtered by "starts-with" (case insensitive) from what you enter in the input text field
+* To open a module press `Enter`
+* To close the module browser, press `Esc`
+
+NOTE: You need to have run elm-make/elm-package install to view modules from 3.rd party packages.
+
+
 
 === Note on editor commands
 
@@ -387,6 +401,8 @@ In most cases it should work sensibly though.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.5 Added module browser
+** Bugfix: Display make errors (both make and linting)
 * 0.3.4 Updated to supprt elm-format 0.2-alpha
 ** Added format buffer (keeps unsaved changes) and format expression commands
 * 0.3.3 Fix compatibility with LT 0.8.1. Also tweaked the autocompletion to be a little faster and more accurate.
