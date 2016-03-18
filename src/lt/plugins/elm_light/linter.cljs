@@ -21,6 +21,8 @@
    :else ""))
 
 
+
+
 (defn- status-text [{:keys [errors warnings]}]
   (str "Lint status: " errors "/" warnings))
 
@@ -92,11 +94,9 @@
 
 (defn add-widget [ed res-id]
   (let [{:keys [mark result]} (get-in @ed [:linter-results res-id ])
-        ui (inline-ui ed result)]
-    (.addWidget (editor/->cm-ed ed)
-                (.-from (.find mark))
-                ui
-                #js {:scrollIntoView true})
+        ui (inline-ui ed result)
+        from (.-from (.find mark))]
+    (.addWidget (editor/->cm-ed ed) from ui #js {:scrollIntoView true})
     (dom/focus ui)))
 
 
@@ -207,3 +207,4 @@
                       (when-let [ed (pool/last-active)]
                         (when-let [prev-mark (find-prev-mark ed)]
                           (editor/move-cursor ed (mark->pos next-mark)))))})
+

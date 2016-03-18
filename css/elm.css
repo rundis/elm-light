@@ -124,6 +124,7 @@ div.linter-res {
   overflow:hidden;
   box-sizing:border-box;
   padding: 5px;
+  margin-bottom: 50px; /* to handle "high" errors getting clipped when at bottom of editor*/
   -webkit-user-select: text;
 }
 
