@@ -1,4 +1,6 @@
 .nrepl-port
 target
-module-browser/elm-stuff
-module-browser/elm.js
+elm/ModuleBrowser/elm-stuff
+elm/ModuleBrowser/elm.js
+DocPreview/elm-stuff
+DocPreview/elm.js

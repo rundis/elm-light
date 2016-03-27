@@ -204,6 +204,26 @@ function handleMake(clientId, msg) {
   }
 }
 
+
+function handleGendoc(clientId, msg) {
+  var res = cp.spawnSync("elm-make",
+               [msg.path, "--yes", "--docs=elm-stuff/docs.json", "--output=/dev/null"],
+               {cwd: process.cwd()});
+
+  var err = res.output[2] + "";
+  if (err) {
+    send([clientId, "elm.make.err", err]);
+  } else {
+    var docFile = path.join(process.cwd(), "elm-stuff", "docs.json");
+    var docResults = fs.readFileSync(docFile, "utf-8");
+
+    //var docResults = res.output[1].toString();
+    send([clientId, "elm.gendoc.res", docResults]);
+  }
+}
+
+
+
 function aclSearch(args, callback) {
   var aclPath = path.join(process.env.NODE_PATH, 'elm-oracle/bin/elm-oracle');
   var outBuffer = "";
@@ -374,6 +394,9 @@ function startMessageListener() {
         case "editor.elm.make":
           handleMake(cb, data);
           break;
+        case "editor.elm.gendoc":
+          handleGendoc(cb, data);
+          break;
         case "editor.eval.elm":
           handleEval(cb, data);
           break;
@@ -389,6 +412,8 @@ function startMessageListener() {
         case "editor.elm.doc":
           handleSingleDoc(cb, data);
           break;
+
+
       }
     } catch (ex) {
       console.error("Error in elm client message listener for command: " + cmd);

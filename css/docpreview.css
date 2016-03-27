@@ -1,0 +1,262 @@
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: #f0f0f0;
+  -webkit-text-size-adjust: none;
+}
+
+.elm-doc-preview .hljs,
+.elm-doc-preview .hljs-subst,
+.elm-doc-preview .hljs-tag .hljs-title,
+.elm-doc-preview .nginx .hljs-title {
+  color: black;
+}
+
+.elm-doc-preview .hljs-string,
+.elm-doc-preview .hljs-title,
+.elm-doc-preview .hljs-constant,
+.elm-doc-preview .hljs-parent,
+.elm-doc-preview .hljs-tag .hljs-value,
+.elm-doc-preview .hljs-rules .hljs-value,
+.elm-doc-preview .hljs-preprocessor,
+.elm-doc-preview .hljs-pragma,
+.elm-doc-preview .haml .hljs-symbol,
+.elm-doc-preview .ruby .hljs-symbol,
+.elm-doc-preview .ruby .hljs-symbol .hljs-string,
+.elm-doc-preview .hljs-template_tag,
+.elm-doc-preview .django .hljs-variable,
+.elm-doc-preview .smalltalk .hljs-class,
+.elm-doc-preview .hljs-addition,
+.elm-doc-preview .hljs-flow,
+.elm-doc-preview .hljs-stream,
+.elm-doc-preview .bash .hljs-variable,
+.elm-doc-preview .apache .hljs-tag,
+.elm-doc-preview .apache .hljs-cbracket,
+.elm-doc-preview .tex .hljs-command,
+.elm-doc-preview .tex .hljs-special,
+.elm-doc-preview .erlang_repl .hljs-function_or_atom,
+.elm-doc-preview .asciidoc .hljs-header,
+.elm-doc-preview .markdown .hljs-header,
+.elm-doc-preview .coffeescript .hljs-attribute {
+  color: #800;
+}
+
+.elm-doc-preview .smartquote,
+.elm-doc-preview .hljs-comment,
+.elm-doc-preview .hljs-annotation,
+.elm-doc-preview .diff .hljs-header,
+.elm-doc-preview .hljs-chunk,
+.elm-doc-preview .asciidoc .hljs-blockquote,
+.elm-doc-preview .markdown .hljs-blockquote {
+  color: #888;
+}
+
+.elm-doc-preview .hljs-number,
+.elm-doc-preview .hljs-date,
+.elm-doc-preview .hljs-regexp,
+.elm-doc-preview .hljs-literal,
+.elm-doc-preview .hljs-hexcolor,
+.elm-doc-preview .smalltalk .hljs-symbol,
+.elm-doc-preview .smalltalk .hljs-char,
+.elm-doc-preview .go .hljs-constant,
+.elm-doc-preview .hljs-change,
+.elm-doc-preview .lasso .hljs-variable,
+.elm-doc-preview .makefile .hljs-variable,
+.elm-doc-preview .asciidoc .hljs-bullet,
+.elm-doc-preview .markdown .hljs-bullet,
+.elm-doc-preview .asciidoc .hljs-link_url,
+.elm-doc-preview .markdown .hljs-link_url {
+  color: #080;
+}
+
+.elm-doc-preview .hljs-label,
+.elm-doc-preview .hljs-javadoc,
+.elm-doc-preview .ruby .hljs-string,
+.elm-doc-preview .hljs-decorator,
+.elm-doc-preview .hljs-filter .hljs-argument,
+.elm-doc-preview .hljs-localvars,
+.elm-doc-preview .hljs-array,
+.elm-doc-preview .hljs-attr_selector,
+.elm-doc-preview .hljs-important,
+.elm-doc-preview .hljs-pseudo,
+.elm-doc-preview .hljs-pi,
+.elm-doc-preview .haml .hljs-bullet,
+.elm-doc-preview .hljs-doctype,
+.elm-doc-preview .hljs-deletion,
+.elm-doc-preview .hljs-envvar,
+.elm-doc-preview .hljs-shebang,
+.elm-doc-preview .apache .hljs-sqbracket,
+.elm-doc-preview .nginx .hljs-built_in,
+.elm-doc-preview .tex .hljs-formula,
+.elm-doc-preview .erlang_repl .hljs-reserved,
+.elm-doc-preview .hljs-prompt,
+.elm-doc-preview .asciidoc .hljs-link_label,
+.elm-doc-preview .markdown .hljs-link_label,
+.elm-doc-preview .vhdl .hljs-attribute,
+.elm-doc-preview .clojure .hljs-attribute,
+.elm-doc-preview .asciidoc .hljs-attribute,
+.elm-doc-preview .lasso .hljs-attribute,
+.elm-doc-preview .coffeescript .hljs-property,
+.elm-doc-preview .hljs-phony {
+  color: #88f;
+}
+
+.elm-doc-preview .hljs-keyword,
+.elm-doc-preview .hljs-id,
+.elm-doc-preview .hljs-title,
+.elm-doc-preview .hljs-built_in,
+.elm-doc-preview .css .hljs-tag,
+.elm-doc-preview .hljs-javadoctag,
+.elm-doc-preview .hljs-phpdoc,
+.elm-doc-preview .hljs-dartdoc,
+.elm-doc-preview .hljs-yardoctag,
+.elm-doc-preview .smalltalk .hljs-class,
+.elm-doc-preview .hljs-winutils,
+.elm-doc-preview .bash .hljs-variable,
+.elm-doc-preview .apache .hljs-tag,
+.elm-doc-preview .hljs-type,
+.elm-doc-preview .hljs-typename,
+.elm-doc-preview .tex .hljs-command,
+.elm-doc-preview .asciidoc .hljs-strong,
+.elm-doc-preview .markdown .hljs-strong,
+.elm-doc-preview .hljs-request,
+.elm-doc-preview .hljs-status {
+  font-weight: bold;
+}
+
+.elm-doc-preview .asciidoc .hljs-emphasis,
+.elm-doc-preview .markdown .hljs-emphasis {
+  font-style: italic;
+}
+
+.elm-doc-preview .nginx .hljs-built_in {
+  font-weight: normal;
+}
+
+.elm-doc-preview .coffeescript .javascript,
+.elm-doc-preview .javascript .xml,
+.elm-doc-preview .lasso .markup,
+.elm-doc-preview .tex .hljs-formula,
+.elm-doc-preview .xml .javascript,
+.elm-doc-preview .xml .vbscript,
+.elm-doc-preview .xml .css,
+.elm-doc-preview .xml .hljs-cdata {
+  opacity: 0.5;
+}
+
+
+.elm-doc-preview {
+  font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
+  color: #293c4b;
+  background-color: white;
+  padding: 10px;
+  overflow: auto;
+}
+
+.elm-doc-preview h1, .elm-doc-preview h2, .elm-doc-preview h3, .elm-doc-preview h4 {
+  font-weight: normal;
+}
+
+.elm-doc-preview .entry-list {
+  width: 600px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.elm-doc-preview .entry-list-title {
+  font-size: 3em;
+}
+
+.elm-doc-preview .markdown-entry h1 {
+  margin-top: 2em;
+  margin-bottom: 0.5px
+}
+
+.elm-doc-preview .docs-entry {
+  border-top: 1px solid #eeeeee;
+  margin-top: 1em;
+  margin-bottom: 2em;
+}
+
+
+.elm-doc-preview .docs-annotation {
+  white-space: pre;
+  font-family: 'Source Code Pro', consolas, inconsolata, monospace;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+
+.elm-doc-preview .docs-comment {
+  overflow: hidden;
+  padding-left: 1em;
+}
+
+.elm-doc-preview code {
+  font-family: 'Source Code Pro', consolas, inconsolata, monospace;
+  background-color: rgba(0,0,0,0.04);
+}
+
+
+.elm-doc-preview pre {
+  margin: 0;
+  padding: 10px;
+  background-color: rgb(254,254,254);
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgb(245,245,245);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: 'Source Code Pro', consolas, inconsolata, monospace;
+}
+
+
+.elm-doc-preview .markdown-entry h1 {
+  margin-top: 2em;
+  margin-bottom: 0.5px
+}
+
+.elm-doc-preview a {
+  color: #1184CE;
+  text-decoration: none;
+}
+
+.elm-doc-preview a:hover {
+  text-decoration: underline;
+  color: rgb(234,21,122);
+}
+
+
+.elm-doc-preview p, .elm-doc-preview li {
+  line-height: 1.5em;
+}
+
+.elm-doc-preview i,
+.elm-doc-preview cite,
+.elm-doc-preview em,
+.elm-doc-preview var,
+.elm-doc-preview address,
+.elm-doc-preview dfn {
+    font-style: italic;
+}
+
+.elm-doc-preview ul {
+  list-style: disc;
+  -webkit-margin-before: 1em;
+  -webkit-margin-after: 1em;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+  -webkit-padding-start: 40px;
+}
+
+.elm-doc-preview ol {
+  -webkit-margin-before: 1em;
+  -webkit-margin-after: 1em;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+  -webkit-padding-start: 40px;
+}
+
+
+
