@@ -11885,7 +11885,9 @@ Elm.DocPreview.make = function (_elm) {
    var view = F2(function (address,model) {
       var _p18 = model.selModule;
       if (_p18.ctor === "Nothing") {
-            return A2($Html.div,_U.list([]),_U.list([$Html.text("NO SELECTED MODULE")]));
+            return A2($Html.div,
+            _U.list([]),
+            _U.list([$Html.text("NO SELECTED MODULE -  Maybe you forgot to add your module to the `exposed-modules` entry in elm-package.json ?")]));
          } else {
             var _p19 = _p18._0;
             var chunks = toChunks(_p19);

@@ -71,7 +71,7 @@ view : Signal.Address Action -> Model -> Html
 view address model =
   case model.selModule of
     Nothing ->
-      div [] [text "NO SELECTED MODULE"]
+      div [] [text "NO SELECTED MODULE -  Maybe you forgot to add your module to the `exposed-modules` entry in elm-package.json ?"]
     Just mod ->
       let
         chunks = toChunks mod

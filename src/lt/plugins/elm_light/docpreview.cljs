@@ -64,20 +64,25 @@
 
 
 
+(defn- maybe-create-elm-preview [elmdoc]
+  (if-let [preview (:preview @elmdoc)]
+    preview
+    (let [el (object/->content elmdoc)
+          preview (.embed js/Elm js/Elm.DocPreview el (clj->js {:modules "[]" :selectModule ""}))]
+      (object/assoc-in! elmdoc [:preview] preview)
+      preview)))
+
+
 (behavior ::elm-gendoc-res
           :triggers #{:elm.gendoc.res}
           :reaction (fn [ed res]
                       (notifos/done-working "Elm doc generated")
                       (when-let [elmdoc (:elmdoc @ed)]
-                        (let [el (object/->content elmdoc)
-                              preview (.embed js/Elm js/Elm.DocPreview el (clj->js {:modules "[]" :selectModule ""}))]
-
+                        (let [preview (maybe-create-elm-preview elmdoc)]
                           (.send (.-modules (.-ports preview)) res)
-                          ;(.send (.-selectModule (.-ports preview)) "Dull")
-
                           ;; Hack, when kittens go to die (:
                           (js-util/wait 50
-                                        #(doseq [block (dom/$$ "pre code" el)]
+                                        #(doseq [block (dom/$$ "pre code" (object/->content elmdoc))]
                                            (.highlightBlock js/hljs block)))))))
 
 
