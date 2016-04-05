@@ -162,3 +162,7 @@ div.linter-res .title {
 #elm-module-browser input {
   width: 100%
 }
+
+div.elmrepl .main {
+  height:100%; width:100%; float:left; border-radius:0; box-sizing:border-box;
+}

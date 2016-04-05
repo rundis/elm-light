@@ -236,7 +236,7 @@
                                        (if (editor/selection? ed)
                                          {:code (editor/selection ed) :meta {:start (-> (editor/->cursor ed "start") :line)
                                                                              :end (-> (editor/->cursor ed "end") :line)}}
-                                         (if-let [rng (elm-sel/get-top-level-expr ed pos )]
+                                         (if-let [rng (elm-sel/get-top-level-expr ed pos)]
                                            {:pos pos
                                             :code (editor/range ed (:from rng) (:to rng))
                                             :meta {:start (-> rng :from :line)
@@ -426,7 +426,7 @@
                                                :dirty false})
                           (editor/+class main :main)
                           (editor/move-cursor main {:line 0 :ch 0})
-                          [:div
+                          [:div.elmrepl
                            (object/->content main)])))
 
 
