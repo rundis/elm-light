@@ -1,7 +1,16 @@
-[[:app :lt.objs.plugins/load-js ["mode/elm.js" "js/react.min.js" "js/highlight.pack.js" "elm/ModuleBrowser/moduleBrowser.js" "DocPreview/docPreview.js" "elm-light_compiled.js"]]
+[[:app :lt.objs.plugins/load-js ["mode/elm.js"
+                                 "js/show-hint.js"
+                                 "js/react.min.js"
+                                 "js/highlight.pack.js"
+                                 "elm/ModuleBrowser/moduleBrowser.js"
+                                 "DocPreview/docPreview.js"
+                                 "elm-light_compiled.js"]]
+ [:app :lt.objs.plugins/load-css "css/hinter.css"]
  [:app :lt.objs.plugins/load-css "css/elm.css"]
  [:app :lt.objs.plugins/load-css "css/graph.css"]
  [:app :lt.objs.plugins/load-css "css/docpreview.css"]
+
+ [:app :lt.objs.plugins/load-keymap "elm.keymap"]
 
  [:files :lt.objs.files/file-types [{:exts [:elm], :mime "text/x-elm", :tags [:editor.elm], :name "elm"}]]
 
@@ -20,9 +29,7 @@
  [:editor.elm.common :lt.plugins.elm-light/eval-result]
  [:editor.elm.common :lt.plugins.elm-light/repl-restart!]
 
- [:editor.elm :lt.plugins.elm-light/use-local-hints]
- [:editor.elm :lt.plugins.elm-light/trigger-update-hints]
- [:editor.elm :lt.plugins.elm-light/finish-update-hints]
+
 
  [:editor.elm.common :lt.object/add-tag :docable]
 
@@ -93,5 +100,33 @@
  [:editor.elm :lt.plugins.elm-light.docpreview/elm-gendoc-res]
  [:editor.elm :lt.plugins.elm-light.docpreview/elm-docpreview]
 
+
+
+
+
+
+ ;; ***** Alternate autocompleter *****
+
+  [:editor.elm :lt.object/add-tag :editor.keys.normal.elm] ;; Allow overriding tab which defaults to auto-complete command in std autocompleter plugin
+
+
+  ;; 1) Disable std autocompleter alltogether
+  [:editor.elm :-lt.plugins.auto-complete/intra-buffer-string-hints]
+  [:editor.elm :-lt.plugins.auto-complete/textual-hints]
+  [:editor.elm :-lt.plugins.auto-complete/async-hint-tokens]
+  [:editor.elm :-lt.plugins.auto-complete/show-hint]
+  [:editor.elm :-lt.plugins.auto-complete/remove-on-move-line]
+  [:editor.elm :-lt.plugins.auto-complete/remove-on-scroll-inactive]
+  [:editor.elm :-lt.plugins.auto-complete/auto-show-on-input]
+
+
+  ;; 2) Add "generic" autocompleter behaviors
+  [:editor.elm :lt.plugins.elm-light.autocompleter.core/start-hinting]
+  [:editor.elm :lt.plugins.elm-light.autocompleter.core/auto-show-on-input]
+
+  ;; 3) Add elm specific autocompleter
+  [:editor.elm :lt.plugins.elm-light.hinter/async-hint-results]
+  [:editor.elm :lt.plugins.elm-light.hinter/async-hints]
+  [:editor.elm :lt.plugins.elm-light.hinter/trigger-update-hints]
 
  ]

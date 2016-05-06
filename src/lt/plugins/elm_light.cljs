@@ -124,60 +124,6 @@
 
 
 
-;;****************************************************
-;; autocomplete
-;;****************************************************
-
-(behavior ::trigger-update-hints
-          :triggers #{:editor.elm.hints.update!}
-          :debounce 100
-          :reaction (fn [ed res]
-                      (when-let [default-client (-> @ed :client :default)] ;; dont if not already connected
-                        (when @default-client
-                          (let [info (:info @ed)
-                                command :editor.elm.hint
-                                token (::token @ed)]
-                            (clients/send (eval/get-client! {:command command
-                                                             :info info
-                                                             :origin ed
-                                                             :create try-connect})
-                                          command (assoc info :token token) :only ed))))))
-
-
-
-(js/CodeMirror.extendMode "elm" (clj->js {:hint-pattern #"[\w_\.$]"}))
-
-(defn- maybe-trim-prefix [token completion]
-  (if (> (.indexOf "." token) -1)
-    (last (s/split comletion "."))
-    completion))
-
-(defn create-hints [token completions]
-  (map #(do #js {:completion (maybe-trim-prefix token (:completion %))
-                 :text (:text %)})
-       completions))
-
-(behavior ::finish-update-hints
-          :triggers #{:editor.elm.hints.result}
-          :reaction (fn [ed res]
-                      (when [res]
-                        (object/assoc-in! ed [::hints] (create-hints (::token ed) res))
-                        (object/raise auto-complete/hinter :refresh!))
-                      (notifos/done-working)))
-
-
-(behavior ::use-local-hints
-          :triggers #{:hints+}
-          :reaction (fn [ed hints tok]
-                      (let [token (find-symbol ed (editor/->cursor ed))]
-                        (when (and (seq token) (not= token (::token @ed)))
-                          (object/merge! ed {::token token})
-                          (object/raise ed :editor.elm.hints.update!)))
-                      (if-let [elm-hints (::hints @ed)]
-                        elm-hints
-                        [])))
-
-
 (behavior ::connect
           :triggers #{:connect}
           :reaction (fn [this path]

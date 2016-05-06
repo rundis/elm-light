@@ -253,7 +253,8 @@ function aclSearch(args, callback) {
 
 function handleHint(clientId, msg) {
   var token = msg.token;
-  var args = [msg.path, token];
+  var args = [msg.path, token.string];
+  var channel = msg.channel;
 
 
   if(!msg.path) {
@@ -271,9 +272,9 @@ function handleHint(clientId, msg) {
                     completion: x.name.indexOf(token) === 0 ? x.name : x.fullName};
           });
 
-      send([clientId, "editor.elm.hints.result", completions]);
+      send([clientId, "editor.elm.hints.result", {channel: channel, token: token, completions: completions}]);
     } else {
-      send([clientId, "editor.elm.hints.result", []]);
+      send([clientId, "editor.elm.hints.result", {channel: channel, token: token, completions: []}]);
     }
   });
 }

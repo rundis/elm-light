@@ -1,0 +1,9 @@
+.CodeMirror-hint-active {
+  background: #616161;
+  color: #f4f4f4;
+}
+
+.CodeMirror-hint em {
+  font-weight: bold;
+  color: #c7e6ff;
+}
