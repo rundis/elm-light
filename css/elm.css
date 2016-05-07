@@ -153,6 +153,14 @@ div.linter-res .title {
   text-decoration: underline;
 }
 
+
+div.linter-res span.button {
+  display:inline-block;
+  padding: 3px;
+  margin-top: 5px;
+}
+
+
 #elm-module-browser p.binding {
   color: #ccc;
   font-size: 8pt;

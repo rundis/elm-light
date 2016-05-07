@@ -5,7 +5,8 @@
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
             [lt.objs.clients :as cs]
-            [lt.objs.proc :as proc])
+            [lt.objs.proc :as proc]
+            [lt.objs.eval :as eval])
   (:require-macros [lt.macros :refer [behavior]]))
 
 (def cp (js/require "child_process"))
@@ -103,3 +104,13 @@
         (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
         (cs/rem! client)))
     client))
+
+
+
+(defn get-eval-client
+  "Helper method to get eval client for a given editor and command"
+  [ed cmd]
+  (eval/get-client! {:command cmd
+                     :origin ed
+                     :info (:info @ed)
+                     :create try-connect}))

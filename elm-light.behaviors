@@ -32,19 +32,19 @@
 
 
  [:editor.elm.common :lt.object/add-tag :docable]
-
-
  [:elm.lang :lt.plugins.elm-light/eval!]
 
- [:elmrepl :lt.plugins.elm-light/repl-destroy-on-close]
- [:elmrepl :lt.plugins.elm-light/repl-close-parent]
- [:elmrepl :lt.plugins.elm-light/on-focus-repl-ed]
- [:elmrepl :lt.plugins.elm-light/on-show-repl-refresh-eds]
+ ;; ELM REPL behaviors
+ [:elmrepl :lt.plugins.elm-light.repl/repl-destroy-on-close]
+ [:elmrepl :lt.plugins.elm-light.repl/repl-close-parent]
+ [:elmrepl :lt.plugins.elm-light.repl/on-focus-repl-ed]
+ [:elmrepl :lt.plugins.elm-light.repl/on-show-repl-refresh-eds]
 
  [:editor.elm :lt.plugins.elm-light/lint]
  [:editor.elm :lt.plugins.elm-light/elm-lint-res]
 
  [:editor.elm :lt.plugins.elm-light/make]
+ [:editor.elm :lt.plugins.elm-light/make-project]
  [:editor.elm :lt.plugins.elm-light/elm-make-res]
  [:editor.elm :lt.plugins.elm-light/elm-make-err]
 

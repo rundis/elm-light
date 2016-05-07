@@ -165,17 +165,29 @@ function handleLint(clientId, msg) {
                [msg.path, "--warn", "--yes", "--report=json", "--output=/dev/null"],
                {cwd: process.cwd()});
 
+
   var err = res.output[2] + "";
   if (err) {
     send([clientId, "elm.make.err", err]);
   } else {
     var lintResults = parseMakeResults(res.output[1].toString());
-    send([clientId, "elm.lint.res", lintResults]);
+    send([clientId, msg.handler, lintResults]);
   }
 }
 
 function lowerFirstLetter(str) {
     return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
+
+
+function inferOutputFile(filePath) {
+  var parsed = path.parse(filePath);
+  parsed.ext = "js";
+  parsed.base = lowerFirstLetter(parsed.name) + ".js";
+  parsed.name = lowerFirstLetter(parsed.name);
+
+  return path.format(parsed);
 }
 
 function handleMake(clientId, msg) {
@@ -184,12 +196,7 @@ function handleMake(clientId, msg) {
     return;
   }
 
-  var parsed = path.parse(msg.path);
-  parsed.ext = "js";
-  parsed.base = lowerFirstLetter(parsed.name) + ".js";
-  parsed.name = lowerFirstLetter(parsed.name);
-
-  var outputFile = path.format(parsed);
+  var outputFile = msg.outputFile || inferOutputFile(msg.path);
   var res = cp.spawnSync("elm-make",
                [msg.path, "--warn", "--yes", "--report=json", "--output=" + outputFile],
                {cwd: process.cwd()});
@@ -199,7 +206,10 @@ function handleMake(clientId, msg) {
   if (err.length > 1) {
     send([clientId, "elm.make.err", err]);
   } else {
-    var results = parseMakeResults(res.output[1].toString());
+    var results = {
+      outputFile: outputFile,
+      res: parseMakeResults(res.output[1].toString())
+    };
     send([clientId, "elm.make.res", results]);
   }
 }

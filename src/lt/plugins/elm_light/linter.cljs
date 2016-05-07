@@ -16,11 +16,9 @@
 
 (defn- status-class [{:keys [errors warnings]}]
   (cond
-   (> errors 0) "error"
-   (> warnings 0) "warning"
-   :else ""))
-
-
+    (> errors 0) "error"
+    (> warnings 0) "warning"
+    :else ""))
 
 
 (defn- status-text [{:keys [errors warnings]}]
@@ -28,12 +26,12 @@
 
 (defn ->status-ui [{:keys [lint-summary]}]
   [:span {:class (str "lint-status " (status-class lint-summary))}
-     (status-text lint-summary)])
+   (status-text lint-summary)])
 
 (behavior ::update-lint-status
-                  :triggers #{:update!}
-                  :reaction (fn [this f]
-                              (object/update! this [:lint-summary] f)))
+          :triggers #{:update!}
+          :reaction (fn [this f]
+                      (object/update! this [:lint-summary] f)))
 
 (object/object* ::statusbar.lint-status
                 :triggers #{}
@@ -81,20 +79,53 @@
       nil))
   (editor/focus ed))
 
-(defui inline-ui [ed {:keys [title details category]}]
+
+
+(defn- remove-res [ed res-id ]
+  (let [{:keys [mark result] :as dill} (get-in @ed [:linter-results res-id ])]
+    (when mark (.clear mark))
+    (object/update! ed [:linter-results] dissoc res-id))
+  (editor/focus ed))
+
+
+(defn- current-range [ed mark]
+  (let [start-line (editor/lh->line ed (first (.-lines mark)))
+        end-line (editor/lh->line ed (last (.-lines mark)))]
+    {:from {:ch 0 :line start-line} ;; TODO: For errors start ch will not be 0 !!!
+     :to {:ch (editor/line-length ed end-line) :line end-line}}))
+
+
+(defn- execute-action [ed res-id action-fn res]
+  (let [{:keys [mark]} (get-in @ed [:linter-results res-id ])]
+    (action-fn res (current-range ed mark))
+    (remove-res ed res-id)))
+
+
+(defui action-ui [ed action res-id res]
+  [:span.button (str (:text action))]
+  :click #(execute-action ed res-id (:action action) res))
+
+
+(defui inline-ui [ed res-id {:keys [title details category actions] :as res}]
   [:div {:tabindex -1 :class (str "linter-res " (or (name category) "error"))}
    [:p.title title]
    [:div.details
-    [:pre details]]]
+    [:pre details]
+    [:div (map #(action-ui ed % res-id res) actions)]]]
   :blur #(remove-widget ed (.-target %))
   :keydown #(let [kc (.-keyCode %)]
-               (when (= kc 27)
-                 (remove-widget ed (.-target %)))))
+              (when (= kc 27)
+                (remove-widget ed (.-target %)))
+              (when (and (= kc 13) (seq actions))
+                (.preventDefault %)
+                (.stopPropagation %)
+                (execute-action ed res-id (-> actions first :action) res))))
+
 
 
 (defn add-widget [ed res-id]
   (let [{:keys [mark result]} (get-in @ed [:linter-results res-id ])
-        ui (inline-ui ed result)
+        ui (inline-ui ed res-id result)
         from (.-from (.find mark))]
     (.addWidget (editor/->cm-ed ed) from ui #js {:scrollIntoView true})
     (dom/focus ui)))
@@ -179,11 +210,11 @@
 
 (defn find-next-mark [ed]
   (let [[ms1 ms2] (split-with-mark ed)]
-      (first (into (vec (drop 1 ms2)) ms1))))
+    (first (into (vec (drop 1 ms2)) ms1))))
 
 (defn find-prev-mark [ed]
   (let [[ms1 ms2] (split-with-mark ed)]
-      (first (into (reverse (drop 1 ms2)) ms1))))
+    (first (into (reverse (drop 1 ms2)) ms1))))
 
 
 
