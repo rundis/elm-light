@@ -89,10 +89,11 @@
 
 
 (defn- current-range [ed mark]
-  (let [start-line (editor/lh->line ed (first (.-lines mark)))
-        end-line (editor/lh->line ed (last (.-lines mark)))]
-    {:from {:ch 0 :line start-line} ;; TODO: For errors start ch will not be 0 !!!
-     :to {:ch (editor/line-length ed end-line) :line end-line}}))
+  (let [rng (.find mark)
+        from (.-from rng)
+        to (.-to rng)]
+    {:from {:ch (.-ch from) :line (.-line from)}
+     :to {:ch (.-ch to) :line (.-line to)}}))
 
 
 (defn- execute-action [ed res-id action-fn res]

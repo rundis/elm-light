@@ -57,8 +57,20 @@
                                                         s/trim
                                                         (str "\n"))]
                                             (editor/replace ed from ann)))}]
+    "NAMING ERROR" (let [fixes (->> (re-find #"(?m)Maybe you want one of the following\?(:?[\s\S]*$)" (:details row))
+                                    second
+                                    (s/split-lines)
+                                    (map s/trim)
+                                    (filter seq))]
+                     (map
+                       (fn [suggestion]
+                         {:text suggestion
+                          :action (fn [_ {:keys [from to]}]
+                                    (editor/replace ed from to suggestion))})
+                       fixes))
 
     []))
+
 
 
 
