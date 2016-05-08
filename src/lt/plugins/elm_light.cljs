@@ -16,7 +16,6 @@
             [lt.objs.browser :as browser]
             [lt.objs.eval :as eval]
             [lt.objs.sidebar.clients :as scl]
-            [lt.plugins.auto-complete :as auto-complete]
             [lt.util.js :as js-util]
             [clojure.string :as s])
   (:require-macros [lt.macros :refer [behavior]]))
@@ -42,6 +41,21 @@
    :to   {:ch (dec (:column end)) :line (dec (:line end))}})
 
 
+(defn- maybe-trim [ss]
+  (when ss
+    (s/trim ss)))
+
+(defn- str-contains? [source target]
+  (when (and source target)
+    (< -1 (.indexOf source target))))
+
+(defn- maybe-strip-hint [source]
+  (when source
+    (if (str-contains? source "Hint:")
+      (-> (re-find #"(?m)([\s\S]*?(?=Hint:))" source)
+          first
+          s/trim)
+      source)))
 
 (defn linter-action [ed row]
   (case (:tag row)
@@ -57,6 +71,7 @@
                                                         s/trim
                                                         (str "\n"))]
                                             (editor/replace ed from ann)))}]
+
     "NAMING ERROR" (let [fixes (->> (re-find #"(?m)Maybe you want one of the following\?(:?[\s\S]*$)" (:details row))
                                     second
                                     (s/split-lines)
@@ -69,9 +84,19 @@
                                     (editor/replace ed from to suggestion))})
                        fixes))
 
+    "TYPE MISMATCH"  (let [ann (-> (re-find #"(?m)But I am inferring that the definition has this type:([\s\S]*$)" (:details row))
+                                   second
+                                   maybe-trim
+                                   maybe-strip-hint)]
+                       (if (and ann (not (str-contains? ann "...")))
+                         [{:text "Fix annotation"
+                           :action (fn [_ {:keys [from to]}]
+                                     (editor/replace ed from to ann))}]
+                         ;; TODO: Could potentially handle typo's in records here too, but need to reliably find what the annotation belogs too (:
+                         []))
+
+
     []))
-
-
 
 
 (defn display-make-results [ed res path]
