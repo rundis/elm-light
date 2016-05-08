@@ -114,6 +114,21 @@ If you wish to lint on save just add the following to your user behaviors
 [:editor.elm :lt.objs.editor.file/on-save :elm.lint]
 ----
 
+==== Quick fixes
+For some warnings and errors there are shortcut operations to do fixes in your code.
+
+.Currently these includes
+- **Unused import**: Allows you to quickly remove an unused import
+- **Missing type annotation**: Facility to add type annotation (top level expressions only)
+- **Type mismatch**: Facility to fix a type annotation that doesn't match the implementation
+- **Naming errors**: For some spelling errors the compiler will provide helpful suggestions. Feature to quickly apply one of those suggestions (if any)
+
+
+NOTE: When an linter message is open and a quick fix operation is available you
+will have buttons for each possible action. Pressing `Enter` will invoke the first action available (which is typically the one you want)
+
+
+
 
 === Make (to js)
 To run make for your elm file/project use the command: `Elm: Make selected file`
@@ -423,6 +438,7 @@ In most cases it should work sensibly though.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.7 Improved autocompleter implementation and added quick-fixes feature to Linter messages
 * 0.3.6 Added package doc preview feature
 ** Fixed bug with lint display at bottom of editor getting cut off
 * 0.3.5 Added module browser
