@@ -130,10 +130,7 @@
                          (if (seq chs)
                            (do
                              (listen-for-hint-results ed chs (init-show-hint-ch ed))
-                             (js/CodeMirror.on line-handle "change" on-line-change)
-                             ;;(ctx/in! [:editor.keys.hinting.active] ed)
-                             ;;(ctx/out!  [:editor.keys.hinting.active])
-                             )
+                             (js/CodeMirror.on line-handle "change" on-line-change))
                            (maybe-close-hinter ed)))))
 
 
