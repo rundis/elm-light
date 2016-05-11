@@ -369,6 +369,14 @@ in question.
 ----
 
 
+.Configuring indent in Light Table
+[source,clojure]
+----
+[:editor.elm.common :lt.objs.editor/tab-settings false 4 4] ;; or 2 2 if the war continues and things change back
+----
+
+
+
 ----
 TIP: Format and Lint on save
 If you wish to format and lint on every save just add the following to your user keymap
