@@ -65,7 +65,8 @@
                           (if ok?
                             (pool/reload ed)
                             (handle-format-error res))
-                          (editor/move-cursor ed pos)))))
+                          (editor/move-cursor ed pos)
+                          (editor/center-cursor ed)))))
 
 (defn- strip-module [expr]
   (->> (s/split-lines expr)
@@ -94,9 +95,10 @@
                             [ok? res] (format-input (-> @ed :info :path u/project-path)
                                                     (editor/->val ed))]
                         (if ok?
-                          (editor/set-val ed res)
-                          (handle-format-error res))
-                        (editor/move-cursor ed pos))))
+                          (do
+                            (editor/set-val-and-keep-cursor ed res)
+                            (editor/center-cursor ed))
+                          (handle-format-error res)))))
 
 
 
