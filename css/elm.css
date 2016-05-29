@@ -104,14 +104,34 @@
 
 /** Linter specifix styling **/
 
-.CodeMirror .lint-error {
+/* .CodeMirror .lint-error {
   border-bottom:  3px solid darkred;
   background-color: inherit;
 }
+ */
 
-.CodeMirror .lint-warning {
-  border-bottom:  2px solid #FFFFCC;
-  background-color: inherit;
+.CodeMirror .lint-warning, .CodeMirror .lint-error {
+  border-bottom:2px dotted;
+  display: inline-block;
+  position: relative;
+}
+
+.CodeMirror .lint-warning:after, .CodeMirror .lint-error:after {
+  content: '';
+  height: 5px;
+  width: 100%;
+  border-bottom: 2px dotted;
+  position: absolute;
+  bottom: -3px;
+  left: -2px;
+}
+
+.CodeMirror .lint-error, .CodeMirror .lint-error:after {
+  border-bottom-color: red;
+}
+
+.CodeMirror .lint-warning, .CodeMirror .lint-warning:after {
+  border-bottom-color: #FFFFCC;
 }
 
 
