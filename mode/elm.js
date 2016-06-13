@@ -226,7 +226,8 @@
       },
       lineComment: "--",
       blockCommentStart: "{-",
-      blockCommentEnd: "-}"
+      blockCommentEnd: "-}",
+      fold: "indent"
     };
 
   });
