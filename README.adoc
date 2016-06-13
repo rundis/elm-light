@@ -1,6 +1,15 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+
 = Elm LightTable plugin
 Elm language plugin for Light Table
-v0.1.2, 2015-11-19: published
+v0.3.7, 2015-11-19: published
 :library: Asciidoctor
 :numbered:
 :idprefix:
