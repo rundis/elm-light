@@ -11,6 +11,8 @@
 })(function(CodeMirror) {
   "use strict";
 
+
+
   CodeMirror.defineMode("elm", function() {
 
     function switchState(source, setState, f) {
@@ -53,7 +55,7 @@
 
           if (source.eat('\''))
             return "string";
-          return "error";
+          return "string"; //  "error";
         }
 
         if (ch == '"') {
@@ -119,7 +121,7 @@
     }
 
     function ncomment(type, nest) {
-      if (nest == 0) {
+      if (nest === 0) {
         return normal();
       }
       return function(source, setState) {
@@ -130,7 +132,7 @@
             ++currNest;
           } else if (ch == '-' && source.eat('}')) {
             --currNest;
-            if (currNest == 0) {
+            if (currNest === 0) {
               setState(normal());
               return type;
             }
@@ -180,7 +182,7 @@
         }
       }
       setState(normal());
-      return "error";
+      return "string"; //  "error";
     }
 
     function stringGap(source, setState) {
@@ -189,7 +191,7 @@
       }
       source.next();
       setState(normal());
-      return "error";
+      return "string"; //"error";
     }
 
 
@@ -202,9 +204,9 @@
         "let", "in",
         "infix", "infixl", "infixr",
         "type", "alias",
-        "input", "output", "foreign", "loopback",
+        "input", "output", "foreign", "port",
         "module", "where", "import", "exposing",
-        "_", "..", "|", ":", "=", "\\", "\"", "->", "<-"
+        "_", "..", "|", ":", "=", "\\",  "->", "<-"  // "\"",
       ];
 
       for (var i = keywords.length; i--;)
