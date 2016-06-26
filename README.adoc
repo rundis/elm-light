@@ -34,7 +34,7 @@ Alternatively you can clone it into `$LT_USER_HOME\plugins`.
 * For all commands/features you will need to have a project folder with a `elm-package.json` file
 
 
-NOTE: Tested with elm 0.16.0 on OS/X 10.9.5, Ubuntu 14.04 and Windows 10.
+NOTE: Tested with elm 0.16.0 and 0.17.0 on OS/X 10.9.5, Ubuntu 14.04 and Windows 10.
 
 == Resources
 * http://rundis.github.io/blog/2015/elm_light.html[ScreenCast] - Demo of the features available in the first release of the plugin
@@ -449,6 +449,12 @@ In most cases it should work sensibly though.
 ----
   [:editor.elm.common "alt-shift-s" :elm.select.top.level] ; modify keybinding to your liking !
 ----
+
+
+==== Code folding
+You can fold code by invoking the editor command `Editor: Fold code at cursor`. It will fold the code based on the given indentation level your cursor is at.
+
+
 
 
 == Contributing
