@@ -1,5 +1,5 @@
 {:name "elm-light"
- :version "0.3.7"
+ :version "0.3.8"
  :author "Magnus Rundberget"
  :source "https://github.com/rundis/elm-light"
  :desc "Elm language plugin for Light Table"

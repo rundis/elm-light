@@ -455,6 +455,7 @@ In most cases it should work sensibly though.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.3.8 Support code folding, fix autoclose brackets issue, scrollposition after format improvement
 * 0.3.7 Improved autocompleter implementation and added quick-fixes feature to Linter messages
 * 0.3.6 Added package doc preview feature
 ** Fixed bug with lint display at bottom of editor getting cut off
