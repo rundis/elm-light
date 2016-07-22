@@ -8,6 +8,8 @@ endif::[]
 
 
 = Elm LightTable plugin
+
+image:https://badges.gitter.im/rundis/elm-light.svg[link="https://gitter.im/rundis/elm-light?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 Elm language plugin for Light Table
 v0.3.7, 2015-11-19: published
 :library: Asciidoctor
