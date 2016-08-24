@@ -3,9 +3,13 @@
             [lt.objs.editor :as editor]
             [lt.objs.editor.pool :as pool]
             [lt.objs.plugins :as plugins]
-            [fetch.core :as fetch]))
+            [lt.object :as object]
+            [fetch.core :as fetch]
+            [lt.util.dom :as dom]))
 
 (def elm-plugin-dir (plugins/find-plugin "elm-light"))
+
+(def marked (js/require (files/join elm-plugin-dir "node_modules" "marked")))
 
 
 (defn str-contains [s v]
@@ -20,6 +24,7 @@
       "variable" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "variable-2" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "variable-3" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
+      "builtin" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "")))
 
 
@@ -74,3 +79,6 @@
              (fn [data]
                (let [pkgs (js->clj (.parse js/JSON data) :keywordize-keys true)]
                  (callback pkgs)))))
+
+
+

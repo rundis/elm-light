@@ -9,6 +9,7 @@
  [:app :lt.objs.plugins/load-css "css/elm.css"]
  [:app :lt.objs.plugins/load-css "css/graph.css"]
  [:app :lt.objs.plugins/load-css "css/docpreview.css"]
+ [:app :lt.objs.plugins/load-css "css/inlinedoc.css"]
 
  [:app :lt.objs.plugins/load-keymap "elm.keymap"]
 
@@ -53,8 +54,7 @@
  [:editor.elm.common :-lt.plugins.auto-complete/textual-hints] ; just messes with autocomplete of elm stuff
 
  [:sidebar.docs.search :lt.plugins.elm-light/elm-doc-search]
- [:editor.elm :lt.plugins.elm-light/elm-doc]
- [:editor.elm :lt.plugins.elm-light/print-elm-doc]
+
 
 
  [:elm.packages :lt.plugins.elm-light.packages/show-project-packages]
@@ -102,8 +102,22 @@
 
 
 
+ ;; New AST related behaviors
+ [:editor :lt.plugins.elm-light.elm-ast/update-ast-status-on-editor-change]
+
+ [:editor.elm :lt.plugins.elm-light/elm-jump-to-definition-start]
+ [:editor.elm :lt.plugins.elm-light/elm-jump-to-definition]
+
+ [:editor.elm :lt.plugins.elm-light/elm-doc]
+ [:editor.elm :lt.plugins.elm-light/elm-doc-start]
+ [:editor.elm :lt.plugins.elm-light.inline-doc/editor.elm.doc.show!]
+
+ [:editor.elm :lt.plugins.elm-light/elm-reload-ast]
+ [:editor.elm :lt.plugins.elm-light/elm-reload-ast-started]
 
 
+ [:editor.elm :lt.plugins.elm-light/elm-parse-editor]
+ [:editor.elm :lt.plugins.elm-light/elm-parse-editor-result]
 
  ;; ***** Alternate autocompleter *****
 

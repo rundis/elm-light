@@ -1,12 +1,14 @@
 (ns lt.plugins.elm-light.clients
   (:require [lt.plugins.elm-light.utils :as u]
+            [lt.plugins.elm-light.elm-ast :as ast]
             [lt.objs.files :as files]
             [lt.object :as object]
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
             [lt.objs.clients :as cs]
             [lt.objs.proc :as proc]
-            [lt.objs.eval :as eval])
+            [lt.objs.eval :as eval]
+            [lt.objs.editor.pool :as pool])
   (:require-macros [lt.macros :refer [behavior]]))
 
 (def cp (js/require "child_process"))
@@ -27,17 +29,41 @@
 
 
 (defn on-exit [client]
-  (cs/rem! client)
-  (release-reactor-port (:dir @client)))
+  (ast/delete-project-ast! (:dir @client))
+  (doseq [ed (pool/containing-path (:dir @client))]
+          (object/raise ed :project-disconnected))
+  (release-reactor-port (:dir @client))
+  (cs/rem! client))
 
 
 
 (defn on-elm-message [client data]
-  (let [msg (js->clj data :keywordize-keys true)]
-    (if (= (second msg) "elm.client.connected")
+  (let [msg (js->clj data :keywordize-keys true)
+        logTime (js/Date.)
+        logPrefix (str (.getSeconds logTime) ":" (.getMilliseconds logTime) " >>")]
+    (cond
+
+      (= (second msg) "elm.client.connected")
       (do
         (object/raise client :connect)
-        (object/raise cs/clients :connect client))
+        (object/raise cs/clients :connect client)
+        (doseq [ed (pool/containing-path (:dir @client))]
+          (object/raise ed :project-connected)))
+
+      (= (second msg) "elm.ast.update")
+      (let [{:keys [file type ast error package]} (last msg)]
+        (case type
+          "parseError" (console/error (str file "\n" error))
+          "parsed" (do
+                     ;(println logPrefix "Parsed msg: " file)
+                     (ast/upsert-ast! (:dir @client)
+                                      {:file file
+                                       :ast ast
+                                       :package package}))
+          (println type file)))
+
+
+      :else
       (object/raise cs/clients :message msg))))
 
 
@@ -82,6 +108,9 @@
                                           :commands #{:editor.elm.lint
                                                       :editor.eval.elm
                                                       :editor.elm.make
+                                                      :editor.elm.ast.passthrough
+                                                      :elm.reload.ast
+                                                      :editor.elm.ast.parsetext
                                                       :editor.elm.hint
                                                       :docs.elm.search
                                                       :editor.elm.doc
@@ -108,9 +137,21 @@
 
 
 (defn get-eval-client
-  "Helper method to get eval client for a given editor and command"
+  "Helper method to get eval client for a given editor and command
+  If none found it will try to connect"
   [ed cmd]
   (eval/get-client! {:command cmd
                      :origin ed
                      :info (:info @ed)
                      :create try-connect}))
+
+
+(defn get-eval-client-if-connected
+  "Helper method to get eval client for a given editor and command"
+  [ed cmd]
+  (eval/get-client! {:command cmd
+                     :origin ed
+                     :info (:info @ed)
+                     :create (fn [opts]
+                               (notifos/done-working "")
+                               nil)}))

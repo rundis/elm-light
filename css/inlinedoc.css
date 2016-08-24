@@ -1,0 +1,243 @@
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  background: inherit;
+  -webkit-text-size-adjust: none;
+}
+
+.elm-inline-doc .hljs,
+.elm-inline-doc .hljs-subst,
+.elm-inline-doc .hljs-tag .hljs-title,
+.elm-inline-doc .nginx .hljs-title {
+  color: black;
+}
+
+.elm-inline-doc .hljs-string,
+.elm-inline-doc .hljs-title,
+.elm-inline-doc .hljs-constant,
+.elm-inline-doc .hljs-parent,
+.elm-inline-doc .hljs-tag .hljs-value,
+.elm-inline-doc .hljs-rules .hljs-value,
+.elm-inline-doc .hljs-preprocessor,
+.elm-inline-doc .hljs-pragma,
+.elm-inline-doc .haml .hljs-symbol,
+.elm-inline-doc .ruby .hljs-symbol,
+.elm-inline-doc .ruby .hljs-symbol .hljs-string,
+.elm-inline-doc .hljs-template_tag,
+.elm-inline-doc .django .hljs-variable,
+.elm-inline-doc .smalltalk .hljs-class,
+.elm-inline-doc .hljs-addition,
+.elm-inline-doc .hljs-flow,
+.elm-inline-doc .hljs-stream,
+.elm-inline-doc .bash .hljs-variable,
+.elm-inline-doc .apache .hljs-tag,
+.elm-inline-doc .apache .hljs-cbracket,
+.elm-inline-doc .tex .hljs-command,
+.elm-inline-doc .tex .hljs-special,
+.elm-inline-doc .erlang_repl .hljs-function_or_atom,
+.elm-inline-doc .asciidoc .hljs-header,
+.elm-inline-doc .markdown .hljs-header,
+.elm-inline-doc .coffeescript .hljs-attribute {
+  color: #800;
+}
+
+.elm-inline-doc .smartquote,
+.elm-inline-doc .hljs-comment,
+.elm-inline-doc .hljs-annotation,
+.elm-inline-doc .diff .hljs-header,
+.elm-inline-doc .hljs-chunk,
+.elm-inline-doc .asciidoc .hljs-blockquote,
+.elm-inline-doc .markdown .hljs-blockquote {
+  color: #888;
+}
+
+.elm-inline-doc .hljs-number,
+.elm-inline-doc .hljs-date,
+.elm-inline-doc .hljs-regexp,
+.elm-inline-doc .hljs-literal,
+.elm-inline-doc .hljs-hexcolor,
+.elm-inline-doc .smalltalk .hljs-symbol,
+.elm-inline-doc .smalltalk .hljs-char,
+.elm-inline-doc .go .hljs-constant,
+.elm-inline-doc .hljs-change,
+.elm-inline-doc .lasso .hljs-variable,
+.elm-inline-doc .makefile .hljs-variable,
+.elm-inline-doc .asciidoc .hljs-bullet,
+.elm-inline-doc .markdown .hljs-bullet,
+.elm-inline-doc .asciidoc .hljs-link_url,
+.elm-inline-doc .markdown .hljs-link_url {
+  color: #080;
+}
+
+.elm-inline-doc .hljs-label,
+.elm-inline-doc .hljs-javadoc,
+.elm-inline-doc .ruby .hljs-string,
+.elm-inline-doc .hljs-decorator,
+.elm-inline-doc .hljs-filter .hljs-argument,
+.elm-inline-doc .hljs-localvars,
+.elm-inline-doc .hljs-array,
+.elm-inline-doc .hljs-attr_selector,
+.elm-inline-doc .hljs-important,
+.elm-inline-doc .hljs-pseudo,
+.elm-inline-doc .hljs-pi,
+.elm-inline-doc .haml .hljs-bullet,
+.elm-inline-doc .hljs-doctype,
+.elm-inline-doc .hljs-deletion,
+.elm-inline-doc .hljs-envvar,
+.elm-inline-doc .hljs-shebang,
+.elm-inline-doc .apache .hljs-sqbracket,
+.elm-inline-doc .nginx .hljs-built_in,
+.elm-inline-doc .tex .hljs-formula,
+.elm-inline-doc .erlang_repl .hljs-reserved,
+.elm-inline-doc .hljs-prompt,
+.elm-inline-doc .asciidoc .hljs-link_label,
+.elm-inline-doc .markdown .hljs-link_label,
+.elm-inline-doc .vhdl .hljs-attribute,
+.elm-inline-doc .clojure .hljs-attribute,
+.elm-inline-doc .asciidoc .hljs-attribute,
+.elm-inline-doc .lasso .hljs-attribute,
+.elm-inline-doc .coffeescript .hljs-property,
+.elm-inline-doc .hljs-phony {
+  color: #88f;
+}
+
+.elm-inline-doc .hljs-keyword,
+.elm-inline-doc .hljs-id,
+.elm-inline-doc .hljs-title,
+.elm-inline-doc .hljs-built_in,
+.elm-inline-doc .css .hljs-tag,
+.elm-inline-doc .hljs-javadoctag,
+.elm-inline-doc .hljs-phpdoc,
+.elm-inline-doc .hljs-dartdoc,
+.elm-inline-doc .hljs-yardoctag,
+.elm-inline-doc .smalltalk .hljs-class,
+.elm-inline-doc .hljs-winutils,
+.elm-inline-doc .bash .hljs-variable,
+.elm-inline-doc .apache .hljs-tag,
+.elm-inline-doc .hljs-type,
+.elm-inline-doc .hljs-typename,
+.elm-inline-doc .tex .hljs-command,
+.elm-inline-doc .asciidoc .hljs-strong,
+.elm-inline-doc .markdown .hljs-strong,
+.elm-inline-doc .hljs-request,
+.elm-inline-doc .hljs-status {
+  font-weight: bold;
+}
+
+.elm-inline-doc .asciidoc .hljs-emphasis,
+.elm-inline-doc .markdown .hljs-emphasis {
+  font-style: italic;
+}
+
+.elm-inline-doc .nginx .hljs-built_in {
+  font-weight: normal;
+}
+
+.elm-inline-doc .coffeescript .javascript,
+.elm-inline-doc .javascript .xml,
+.elm-inline-doc .lasso .markup,
+.elm-inline-doc .tex .hljs-formula,
+.elm-inline-doc .xml .javascript,
+.elm-inline-doc .xml .vbscript,
+.elm-inline-doc .xml .css,
+.elm-inline-doc .xml .hljs-cdata {
+  opacity: 0.5;
+}
+
+
+.elm-inline-doc {
+  margin-top: 1em;
+  font-family: inherit;
+  color: inherit;
+  background-color: inherit;
+  overflow: auto;
+}
+
+.elm-inline-doc h1, .elm-inline-doc h2, .elm-inline-doc h3, .elm-inline-doc h4 {
+  font-weight: normal;
+}
+
+
+.elm-inline-doc code {
+  color: #c7e6ff;
+}
+.elm-inline-doc code:hover {
+  text-decoration: none;
+}
+
+
+.elm-inline-doc pre > code {
+  font-family: 'Source Code Pro', consolas, inconsolata, monospace;
+  background-color: #c7e6ff;
+}
+
+.elm-inline-doc blockquote p {
+  padding: 0 1em;
+  font-style: italic;
+  border-left: 0.25em solid gray;
+}
+
+
+.underline-result .elm-inline-doc > pre {
+  margin: 0px 0px 10px 0px;
+  padding: 10px;
+  background-color: inherit; /*rgb(254,254,254);*/
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgb(245,245,245);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: 'Source Code Pro', consolas, inconsolata, monospace;
+}
+
+
+.elm-inline-doc a {
+  color: white;
+  text-decoration: none;
+}
+
+.elm-inline-doc a:hover {
+  text-decoration: underline;
+}
+
+
+.elm-inline-doc p, .elm-inline-doc li {
+  line-height: inherit;
+}
+
+.elm-inline-doc i,
+.elm-inline-doc cite,
+.elm-inline-doc em,
+.elm-inline-doc var,
+.elm-inline-doc address,
+.elm-inline-doc dfn {
+    font-style: italic;
+}
+
+
+.elm-inline-doc ul li, .elm-inline-doc ol li {
+  line-height: 0.8em;
+}
+
+.elm-inline-doc ul {
+  list-style: disc;
+  line-height: 0.9em;
+  -webkit-margin-before: 1em;
+  -webkit-margin-after: 1em;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+  -webkit-padding-start: 30px;
+}
+
+.elm-inline-doc ol {
+  line-height: 0.9em;
+  -webkit-margin-before: 1em;
+  -webkit-margin-after: 1em;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+  -webkit-padding-start: 30px;
+}
+
+
+

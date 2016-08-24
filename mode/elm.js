@@ -204,7 +204,7 @@
         "let", "in",
         "infix", "infixl", "infixr",
         "type", "alias",
-        "input", "output", "foreign", "port",
+        "foreign", "port", "effect",
         "module", "where", "import", "exposing",
         "_", "..", "|", ":", "=", "\\",  "->", "<-"  // "\"",
       ];

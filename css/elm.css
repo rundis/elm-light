@@ -135,6 +135,21 @@
 }
 
 
+/* Override Inline doc */
+div.inline-doc h2 {
+  font-size: 100%;
+}
+
+div.inline-doc h3 {
+  font-size: 90%;
+  font-weight: 600;
+  border-bottom: none;
+}
+
+
+
+
+
 div.linter-res {
   z-index: 1000;
   top: 100%;
@@ -148,11 +163,19 @@ div.linter-res {
   -webkit-user-select: text;
 }
 
-span.lint-status {
+span.lint-status, span.ast-status {
   padding: 0 5px 0 5px;
+  -webkit-border-radius: 5px;
+  display: block;
+  opacity: 0.8;
 }
 
-div.linter-res.error, span.lint-status.error {
+span.ast-status.ok {
+  background-color: #7CAB80;
+  color: #B9FBBE;
+}
+
+div.linter-res.error, span.lint-status.error, span.ast-status.error {
   background: #73404c;
   color: #ffa6a6;
 }

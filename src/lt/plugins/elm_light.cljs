@@ -1,7 +1,9 @@
 (ns lt.plugins.elm-light
   (:require [lt.plugins.elm-light.selection :as elm-sel]
             [lt.plugins.elm-light.utils :refer [find-symbol project-path reactor-path parse-json-file]]
-            [lt.plugins.elm-light.clients :refer [try-connect get-eval-client]]
+            [lt.plugins.elm-light.clients :refer [try-connect get-eval-client get-eval-client-if-connected]]
+            [lt.plugins.elm-light.elm-ast :as elm-ast]
+            [lt.plugins.elm-light.linter :as linter]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -222,27 +224,6 @@
                       (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
 
 
-(behavior ::elm-doc
-          :triggers #{:editor.doc}
-          :reaction (fn [ed]
-                      (let [pos (editor/->cursor ed)
-                            token (find-symbol ed pos)
-                            command :editor.elm.doc
-                            info (assoc (@ed :info)
-                                   :loc pos
-                                   :sym token)]
-                        (when token
-                          (clients/send (get-eval-client ed command)
-                                        command info :only ed)))))
-
-(behavior ::print-elm-doc
-          :triggers #{:editor.elm.doc.result}
-          :reaction (fn [ed result]
-                      (notifos/done-working)
-                      (if-not result
-                        (notifos/set-msg! "No docs found." {:class "error"})
-                        (object/raise ed :editor.doc.show! result))))
-
 
 
 ;;****************************************************
@@ -342,6 +323,148 @@
                           (notifos/done-working)))))
 
 
+;;****************************************************
+;; NEW AST Based features
+;;****************************************************
+
+(defn- get-editor-client [ed]
+  (when-let [default-client (-> @ed :client :default)]
+    (when @default-client
+      default-client)))
+
+(defn- location->pos [loc]
+  {:line (-> loc :start :line dec)
+   :ch (-> loc :start :column dec)})
+
+(defn- ast-pass-through [ed msg]
+  (clients/send
+    (get-eval-client ed :editor.elm.ast.passthrough)
+    :editor.elm.ast.passthrough
+    msg
+    :only ed))
+
+(behavior ::elm-reload-ast
+          :triggers #{:elm.reload-ast}
+          :reaction (fn [ed]
+                      (let [project (project-path (-> @ed :info :path))]
+                        (notifos/working (str "Init reload of ast for project: " project))
+                        (elm-ast/delete-project-ast! project)
+                        (clients/send
+                          (get-eval-client ed :elm.reload.ast)
+                          :elm.reload.ast
+                          {}
+                          :only ed))))
+
+(behavior ::elm-reload-ast-started
+          :triggers #{:elm.ast.reload.started}
+          :reaction (fn [ed]
+                      (notifos/done-working "Parsing ast started")))
+
+
+
+(behavior ::elm-jump-to-definition-start
+          :triggers #{:editor.jump-to-definition-at-cursor!}
+          :reaction (fn [ed]
+                      (notifos/working (str "Initiate jump to definition"))
+                      (if-let [default-client (get-editor-client ed)]
+                        (object/raise ed :editor.elm.jump-to-definition {})
+                        (ast-pass-through ed {:target :editor.elm.jump-to-definition
+                                              :data {}}))))
+
+
+
+(behavior ::elm-jump-to-definition
+          :triggers #{:editor.elm.jump-to-definition}
+          :reaction (fn [ed data]
+                      (notifos/done-working "")
+                      (let [pos (editor/->cursor ed)
+                            token (find-symbol ed pos)
+                            path (-> @ed :info :path)]
+                        (when token
+                          (when-let [target (elm-ast/get-jump-to-definition token path (project-path path))]
+                            (object/raise lt.objs.jump-stack/jump-stack
+                                            :jump-stack.push!
+                                            ed
+                                            (:file target)
+                                            (location->pos (:location target))))))))
+
+
+(behavior ::elm-doc-start
+          :triggers #{:editor.doc}
+          :reaction (fn [ed]
+                      (notifos/working (str "Initiate show doc"))
+                      (if-let [default-client (get-editor-client ed)]
+                        (object/raise ed :editor.elm.doc {})
+                        (ast-pass-through ed {:target :editor.elm.doc
+                                              :data {}}))))
+
+
+(behavior ::elm-doc
+          :triggers #{:editor.elm.doc}
+          :reaction (fn [ed]
+                      (let [pos (editor/->cursor ed)
+                            token (find-symbol ed pos)
+                            path (-> @ed :info :path)]
+                        (when token
+                          (notifos/done-working ""))
+                        (when-let [target (elm-ast/get-jump-to-definition token
+                                                                          path
+                                                                          (project-path path))]
+                          (object/raise ed
+                                        :editor.elm.doc.show!
+                                        {:name (str (:module-name target) "." (:value target)
+                                                    (when-let [pck (:package target)]
+                                                      (str " (" (:name pck) " " (:version pck) ")")))
+                                         :args (or
+                                                 (-> target :annotation :signatureRaw)
+                                                 (-> target :signatureRaw))
+
+                                         :doc (when-let [doc (:doc target)]
+                                                (.trim doc))
+                                         :loc pos})))))
+
+(behavior ::elm-parse-editor
+          :triggers #{:change :focus :project-connected :project-disconnected}
+          :debounce 100
+          :reaction (fn [ed]
+                      (if-let [client (get-eval-client-if-connected ed :editor.elm.ast.parsetext)]
+                        (when client (and (= (pool/last-active) ed))
+                          (clients/send client
+                                        :editor.elm.ast.parsetext
+                                        {:code (editor/->val ed)}
+                                        :only ed))
+                        (do
+                          (object/raise ed :clear-linter-results!)
+                          (object/update! ed [:ast-status] assoc :status nil :error nil)
+                          (elm-ast/update-status-for-editor ed)))))
+
+
+(behavior ::elm-parse-editor-result
+          :triggers #{:editor.elm.ast.parsetext.result}
+          :reaction (fn [ed res]
+                      (if-let [error (:error res)]
+                        (do
+                          (object/update! ed [:ast-status] assoc :status :error :error error)
+                          )
+                        (let [path (-> @ed :info :path)]
+                          (object/update! ed [:ast-status] assoc :status :ok :error nil)
+
+                          ;; Is this really safe to do ?!
+                          (elm-ast/upsert-ast! (project-path path)
+                                               {:file path
+                                                :ast (:ast res)})))
+
+                      (elm-ast/update-status-for-editor ed)))
+
+
+
+
+
+
+;;****************************************************
+;; LT Connection stuff
+;;****************************************************
+
 
 (object/object* ::elm-lang
                 :tags #{:elm.lang})
@@ -357,6 +480,13 @@
 
 
 ;; Commands
+
+(cmd/command {:command :elm.reload.ast
+              :desc "Elm: Load/Reload project AST"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.reload-ast)))})
+
 (cmd/command {:command :elm.lint
               :desc "Elm: Lint selected file"
               :exec (fn []

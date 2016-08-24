@@ -5,6 +5,9 @@ var psTree = require("ps-tree");
 var cp = require("child_process");
 var wrench = require("wrench");
 var os = require("os");
+var chokidar = require("chokidar")
+var walker = require('fs-walk');
+var elmParser = require("./elmparser")
 
 
 process.setMaxListeners(100);
@@ -12,8 +15,65 @@ process.setMaxListeners(100);
 
 var elmGlobals = {
   repl: null,
-  reactor: null
+  reactor: null,
+  watcher: null
 };
+
+
+
+/* ----------- START CLIENT / BOOTSTRAP --------- */
+
+
+// Not much useful can be done without packages, might as well try to insall by default
+// If already installed the overhead is neglible
+// Also elm-repl will delete elm-stuff on exit if not created before it's started !
+doPackageInstall();
+
+
+
+
+
+
+// Start parsing as early as possible
+startWatcher();
+parseSourceFiles();
+parseAllPackageSources();
+
+startRepl(
+  function (err) {
+    console.error(err);
+    handleClose();
+  },
+  function (out) {
+    elmGlobals.repl.stdout.removeAllListeners("data");
+    elmGlobals.repl.stderr.removeAllListeners("data");
+    startReactor(
+      function (err) {
+        console.error (err);
+        handleClose();
+      },
+      function (out) {
+        elmGlobals.reactor.stderr.removeAllListeners("data");
+        elmGlobals.reactor.stdout.removeAllListeners("data");
+        startMessageListener();
+
+      },
+      process.cwd(),
+      parseInt(process.argv[2])
+    );
+  },
+  process.cwd()
+);
+
+
+function doPackageInstall() {
+  try {
+    cp.execSync("elm-package install --yes", {cwd: process.cwd()});
+  } catch (e) {
+    console.error("Error running package install" + e);
+  }
+}
+
 
 
 function startRepl(error, success, projectPath) {
@@ -58,7 +118,331 @@ function startReactor(error, success, projectPath, port) {
   });
 }
 
+
+
+function startMessageListener() {
+  send([1, "elm.client.connected", []]); // notify lt we`re ready to receive messages
+
+  process.on("message", function (msg) {
+    var cb   = msg.cb;
+    var cmd  = msg.command;
+    var data = msg.data;
+
+    try {
+      switch (cmd) {
+        case "client.close":
+          handleClose();
+          break;
+        case "editor.elm.ast.passthrough":
+          handleAstPassThrough(cb, data);
+          break;
+        case "elm.reload.ast":
+          handleReloadAst(cb);
+          break;
+        case "editor.elm.ast.parsetext":
+          handleParseEditorText(cb, data);
+          break;
+        case "editor.elm.lint":
+          handleLint(cb, data);
+          break;
+        case "editor.elm.make":
+          handleMake(cb, data);
+          break;
+        case "editor.elm.gendoc":
+          handleGendoc(cb, data);
+          break;
+        case "editor.eval.elm":
+          handleEval(cb, data);
+          break;
+        case "elm.repl.restart":
+          handleReplRestart(cb);
+          break;
+        case "editor.elm.hint":
+          handleHint(cb, data);
+          break;
+        case "docs.elm.search":
+          handleDocsSearch(cb, data);
+          break;
+        case "editor.elm.doc":
+          handleSingleDoc(cb, data);
+          break;
+
+
+      }
+    } catch (ex) {
+      console.error("Error in elm client message listener for command: " + cmd);
+      console.error(ex);
+      handleClose();
+    }
+  });
+}
+
+
+function startWatcher() {
+  var watcher = chokidar.watch(['elm-package.json',
+                                'elm-stuff/exact-dependencies.json',
+                                '**/*.elm'], {
+    cwd: process.cwd(),
+    persistent: true,
+    ignoreInitial: false,
+    //ignored: ['elm-stuff/**'], // need to find a robust way to handle these !
+    followSymlinks: false,
+    atomic: false
+  });
+
+
+  /* concers to handle
+  - Package deleted -> Just report a delete event (on .elm files)  and let client deal with it.
+  - Package added -> Only listen for moved directory under elm-stuff, parse package.json and only parse src directories for that package
+  - if not under elm-stuff, check if source file (remember to use latest elm-package.json)
+  - if source file and event moved, need to stat if file is present or not to decide if add or remove !
+  - On directory move stat if exists to notify of directory delete or directory add (on add parse all elm files... not very efficient though)
+  */
+
+  watcher.on("raw", function(event, file, details) {
+    var relFile = path.relative(process.cwd(), file);
+    var sourceDirs = getSourceDirs(process.cwd());
+
+    //console.log("Watcher Event: " + event + " file: " + relFile);
+
+
+    if(relFile === "elm-stuff/exact-dependencies.json") {
+      sendAstMsg({
+        type: "packagechange"
+      });
+      parseAllPackageSources();
+    }
+
+
+    if (isSourceFile(sourceDirs, file) && event === "modified") {
+      parseAndSend(file);
+    }
+
+    if (isSourceFile(sourceDirs, file) && event === "deleted") {
+      sendAstMsg({
+        file: file,
+        type: "deleted"
+      });
+    }
+
+    if (isSourceFile(sourceDirs, file)
+        && event === "moved") {
+      if(fileExists(file)) {
+        parseAndSend(file);
+      } else {
+        sendAstMsg({
+          file: file,
+          type: "deleted"
+        });
+      }
+    }
+  });
+
+
+  elmGlobals.watcher = watcher;
+
+}
+
+function parseSourceFiles() {
+  var sourceDirs = getSourceDirs(process.cwd());
+
+  sourceDirs.forEach(function (d) {
+    walker.files(path.join(process.cwd(), d), function (basedir, filename, stat, next) {
+      if (path.extname(filename) === ".elm") {
+        parseAndSend(path.join(basedir, filename));
+      }
+      next();
+    });
+  });
+}
+
+function parseAllPackageSources() {
+  var deps = getProjectDeps(process.cwd());
+  deps.forEach(function (dep) {
+    var packageDir = path.join(process.cwd(), "elm-stuff/packages", dep.name, dep.version);
+    parsePackageSources({
+      packageDir: packageDir,
+      name: dep.name,
+      version: dep.version
+    });
+  });
+}
+
+function parsePackageSources(package) {
+  var sourceDirs = getSourceDirs(package.packageDir);
+
+  sourceDirs.forEach(function (d) {
+    walker.files(path.join(package.packageDir, d), function (basedir, filename, stat, next) {
+      if (path.extname(filename) === ".elm") {
+        parseAndSendPackageSource(package, path.join(basedir, filename));
+      }
+      next();
+    });
+  });
+}
+
+
+function getProjectDeps(projectDir) {
+  var packages = [];
+  try {
+    var depsPath = path.join(projectDir, "elm-stuff/exact-dependencies.json");
+    var deps = JSON.parse(fs.readFileSync(depsPath).toString());
+    var packageJsonPath = path.join(projectDir, "elm-package.json");
+    var packageJson = JSON.parse(fs.readFileSync(packageJsonPath).toString());
+    var exposedPackages = Object.keys(packageJson["dependencies"]);
+
+    packages =
+      Object.keys(deps).map(function(packageName) {
+      return {
+        name: packageName,
+        version: deps[packageName]
+      };
+    }).filter(function(pck) {
+      return exposedPackages.indexOf(pck.name) > -1;
+    });
+
+  } catch (e) {
+    console.log("Failed to get projectDeps: " + e.toString());
+  }
+  return packages;
+}
+
+
+
+
+function parseAndSend(file) {
+  //console.log("Parse and send: " + file);
+  try {
+    var code = fs.readFileSync(file).toString();
+    var ast = elmParser.parse(code);
+    sendAstMsg({
+      file: file,
+      type: "parsed",
+      ast: ast
+    });
+
+  } catch (e) {
+    sendAstMsg({
+      file: file,
+      type: "parseError",
+      error: e
+    });
+  }
+}
+
+function parseAndSendPackageSource(package, file) {
+  try {
+    var exposedModules = getExposedModules(package.packageDir);
+    var ast = elmParser.parse(fs.readFileSync(file).toString());
+
+    if(exposedModules.indexOf(ast.moduleDeclaration.value) > -1) {
+      //console.log("Parse and send package file: " + file);
+
+      sendAstMsg({
+        file: file,
+        type: "parsed",
+        ast: ast,
+        package: package
+      });
+    }
+
+  } catch(e) {
+    console.log("ERROR parsing package source: " + file + "\n" + e.toString());
+  }
+}
+
+
+
+
+function sendAstMsg(msg) {
+  send([1, "elm.ast.update", msg]);
+}
+
+
+function getSourceDirs (projectDir) {
+  var jsonPath = path.join(projectDir, "elm-package.json");
+
+  var sourceDirs = [];
+  try {
+    var json = JSON.parse(fs.readFileSync(jsonPath).toString());
+    sourceDirs = json["source-directories"];
+
+  } catch(e) {
+    console.log("ERROR getting sourcedirs for: " + jsonPath + "\n" + e.toString());
+  }
+  return sourceDirs;
+}
+
+function getExposedModules (projectDir) {
+  var jsonPath = path.join(projectDir, "elm-package.json");
+
+  var modules = [];
+  try {
+    var json = JSON.parse(fs.readFileSync(jsonPath).toString());
+    modules = json["exposed-modules"];
+
+  } catch(e) {
+    console.log("ERROR getting exposed modules for: " + jsonPath + "\n" + e.toString());
+  }
+  return modules;
+}
+
+
+
+
+function fileExists(file) {
+  var stat = null;
+  try {
+    stat = fs.statSync(file);
+  } catch (e) {}
+
+  return stat ? true : false;
+}
+
+function isSourceFile(sourceDirs, file) {
+  if (path.extname(file) !== ".elm") {
+    return false;
+  }
+
+
+  var hits = sourceDirs.map(function(dir) {
+    return path.resolve(process.cwd(), dir);
+  }).filter(function (d) {
+    return file.startsWith(d);
+  });
+
+  return hits.length > 0;
+}
+
+
+
+
 /* ----------- HANDLER RELATED FUNCTIONS --------- */
+
+// For ast operations that executes right after connecting
+// NoOp, just passes back and trigger appropriate behavior
+function handleAstPassThrough(clientId, msg) {
+  send([clientId, msg.target, msg.data]);
+}
+
+function handleReloadAst(clientId) {
+  doPackageInstall();
+  parseSourceFiles();
+  parseAllPackageSources();
+  send([clientId, "elm.ast.reload.started", null]);
+}
+
+function handleParseEditorText(clientId, msg) {
+  try {
+    var ast = elmParser.parse(msg.code);
+    send([clientId, "editor.elm.ast.parsetext.result", {ast: ast}]);
+  } catch(e) {
+    send([clientId, "editor.elm.ast.parsetext.result", {error: e}]);
+  }
+
+}
+
+
 
 function handleReplRestart(clientId) {
   elmGlobals.repl.stdout.removeAllListeners("data");
@@ -372,6 +756,10 @@ function killExternalChildren(pid, cb) {
 
 
 function handleClose() {
+  if(elmGlobals.watcher) {
+    elmGlobals.watcher.close();
+  }
+
   if(os.platform() !== "darwin") {
     process.exit(0);
   } else {
@@ -381,85 +769,17 @@ function handleClose() {
       setTimeout(function () {
         process.exit(0);
       }, 100);
+    } else {
+      process.exit(0);
     }
   }
 }
 
 
-function startMessageListener() {
-  send([1, "elm.client.connected", []]); // notify lt we`re ready to receive messages
-
-  process.on("message", function (msg) {
-    var cb   = msg.cb;
-    var cmd  = msg.command;
-    var data = msg.data;
-
-    try {
-      switch (cmd) {
-        case "client.close":
-          handleClose();
-          break;
-        case "editor.elm.lint":
-          handleLint(cb, data);
-          break;
-        case "editor.elm.make":
-          handleMake(cb, data);
-          break;
-        case "editor.elm.gendoc":
-          handleGendoc(cb, data);
-          break;
-        case "editor.eval.elm":
-          handleEval(cb, data);
-          break;
-        case "elm.repl.restart":
-          handleReplRestart(cb);
-          break;
-        case "editor.elm.hint":
-          handleHint(cb, data);
-          break;
-        case "docs.elm.search":
-          handleDocsSearch(cb, data);
-          break;
-        case "editor.elm.doc":
-          handleSingleDoc(cb, data);
-          break;
 
 
-      }
-    } catch (ex) {
-      console.error("Error in elm client message listener for command: " + cmd);
-      console.error(ex);
-      handleClose();
-    }
-  });
-}
 
 
-/* ----------- START CLIENT / BOOTSTRAP --------- */
-
-startRepl(
-  function (err) {
-    console.error(err);
-    handleClose();
-  },
-  function (out) {
-    elmGlobals.repl.stdout.removeAllListeners("data");
-    //elmGlobals.repl.stderr.removeAllListeners("data");
-    startReactor(
-      function (err) {
-        console.error (err);
-        handleClose();
-      },
-      function (out) {
-        elmGlobals.reactor.stderr.removeAllListeners("data");
-        startMessageListener();
-      },
-      process.cwd(),
-      parseInt(process.argv[2])
-    );
-  },
-  process.cwd()
-);
 
 //setTimeout(function() {handleClose();}, 30000);
 
