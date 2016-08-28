@@ -20,7 +20,7 @@
  [:editor.elm.repl :lt.object/add-tag :editor.elm.common]
 
 
- [:elm.lang :lt.plugins.elm-light/connect]
+ [:elm.lang :lt.plugins.elm-light.clients/connect]
 
  [:editor.elm :lt.plugins.elm-light/elm-unsupported]
  [:editor.elm :lt.plugins.elm-light/elm-browse!]
@@ -54,6 +54,7 @@
  [:editor.elm.common :-lt.plugins.auto-complete/textual-hints] ; just messes with autocomplete of elm stuff
 
  [:sidebar.docs.search :lt.plugins.elm-light/elm-doc-search]
+ [:elm.lang :lt.plugins.elm-light/elm-doc-search-results]
 
 
 
@@ -117,7 +118,13 @@
 
 
  [:editor.elm :lt.plugins.elm-light/elm-parse-editor]
+ [:editor.elm :lt.plugins.elm-light/elm-parse-editor-on-change]
  [:editor.elm :lt.plugins.elm-light/elm-parse-editor-result]
+ [:editor.elm :lt.plugins.elm-light/elm-editor-disconnected]
+
+ [:editor.elm :lt.plugins.elm-light.hinter/elm-hints]
+
+ [:editor.elm :lt.plugins.elm-light.gutter/elm-gutter-exposeds]
 
  ;; ***** Alternate autocompleter *****
 
@@ -138,9 +145,5 @@
   [:editor.elm :lt.plugins.elm-light.autocompleter.core/start-hinting]
   [:editor.elm :lt.plugins.elm-light.autocompleter.core/auto-show-on-input]
 
-  ;; 3) Add elm specific autocompleter
-  [:editor.elm :lt.plugins.elm-light.hinter/async-hint-results]
-  [:editor.elm :lt.plugins.elm-light.hinter/async-hints]
-  [:editor.elm :lt.plugins.elm-light.hinter/trigger-update-hints]
 
  ]

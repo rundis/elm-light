@@ -8,7 +8,8 @@
             [lt.objs.clients :as cs]
             [lt.objs.proc :as proc]
             [lt.objs.eval :as eval]
-            [lt.objs.editor.pool :as pool])
+            [lt.objs.editor.pool :as pool]
+            [lt.objs.sidebar.clients :as scl])
   (:require-macros [lt.macros :refer [behavior]]))
 
 (def cp (js/require "child_process"))
@@ -16,7 +17,7 @@
 (def elm-client-path (files/join u/elm-plugin-dir "node/elm-client.js"))
 (def elm-node-path (files/join u/elm-plugin-dir "node_modules"))
 
-
+(declare elm)
 
 (def harbor
   ((js/require (files/join elm-node-path "harbor")) 3000, 4000))
@@ -48,6 +49,7 @@
         (object/raise client :connect)
         (object/raise cs/clients :connect client)
         (doseq [ed (pool/containing-path (:dir @client))]
+          ;(println "Raise connected : " (-> @ed :info :path))
           (object/raise ed :project-connected)))
 
       (= (second msg) "elm.ast.update")
@@ -61,6 +63,9 @@
                                        :ast ast
                                        :package package}))
           (println type file)))
+
+      (= (second msg) "doc.search.results")
+      (object/raise elm :elm.doc.search.results (assoc-in msg [2 :project-dir] (:dir @client)))
 
 
       :else
@@ -155,3 +160,26 @@
                      :create (fn [opts]
                                (notifos/done-working "")
                                nil)}))
+
+
+;;****************************************************
+;; LT Connection stuff
+;;****************************************************
+(behavior ::connect
+          :triggers #{:connect}
+          :reaction (fn [this path]
+                      (try-connect {:info {:path path}})))
+
+
+(object/object* ::elm-lang
+                :tags #{:elm.lang})
+
+
+(def elm (object/create ::elm-lang))
+
+
+(scl/add-connector {:name "Elm"
+                    :desc "Select a directory to serve as the root of your elm project."
+                    :connect (fn []
+                               (dialogs/dir elm :connect))})
+

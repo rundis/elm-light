@@ -9,6 +9,11 @@
 
 
 
+
+(defn- start-with? [the-str fragment]
+  (when (and the-str fragment)
+    (= 0 (.indexOf the-str fragment))))
+
 (defn idx-of
   [pred coll]
   (first
@@ -50,7 +55,6 @@
 
 (defonce project-asts
   (atom []))
-
 
 
 
@@ -114,6 +118,7 @@
 
 
 
+
 ;; Helpers
 (defn get-module-name [module]
   (-> module :ast :moduleDeclaration :value))
@@ -127,7 +132,7 @@
 
 (defn exposed-by-module? [module candidate]
   (let [exposing (-> module :ast :moduleDeclaration :exposing)]
-    (if (exposeAll? candidate)
+    (if (exposeAll? exposing)
       true
       (-> (extract-exports exposing) set (contains? candidate)))))
 
@@ -239,9 +244,89 @@
 
 ;; JUMP TO DEFINITION
 
-(defn get-jump-to-definition [token module-file project]
-  (when-let [module (get-module-ast project module-file)]
-    (get-candidate-by-token token module (:file-asts (get-project project)))))
+(defn get-jump-to-definition [token module-file project-file]
+  (when-let [module (get-module-ast project-file module-file)]
+    (get-candidate-by-token token module (:file-asts (get-project project-file)))))
+
+
+
+;; Autocompleter hints
+(defn to-hint [curr-module-name candidate]
+  (map
+    (fn [c-tok]
+      {:type (:type candidate)  ; TODO: one of #{:type :definition :module} etc
+       :completion c-tok
+       :text (str c-tok
+                  (when (not= curr-module-name (:module-name candidate))
+                    (str " (" (:module-name candidate) ")"))) ;; todo: Show signature when possible
+       })
+    (:candidate-tokens candidate)))
+
+(defn get-hints
+  "Return hints for a given module file and project.
+  The context parameter provides additional info to filter results
+  and to help make the results context aware to provide better more relevant results
+
+  TODO: Only token is used and only toplevel declarations currently TBI"
+  [{:keys [token]} module-file project-dir]
+
+  (when-let [module (get-module-ast project-dir module-file)]
+    (->> (get-jump-to-candidates module
+                                 (-> (get-project project-dir) :file-asts))
+         (mapcat (partial to-hint (get-module-name module) ))
+         (filter #(= 0 (.indexOf (:text %) token)))
+         (sort-by (juxt (fn [x]
+                          (.lastIndexOf (:completion x) "." ))
+                        :completion)))))
+
+;; Sidebar doc search
+(defn search-docs [sym project-dir]
+  "Search all top level declarations for a given project.
+  Currently just implements starts-with for name or qualified name"
+  (let [qualified-name #(str (:module-name %) "." (:value %))]
+    (when-let [prj (get-project project-dir)]
+      (->> (:file-asts prj)
+           (mapcat get-exposed-declarations)
+           (filter
+             (fn [decl]
+               (or
+                 (start-with? (:value decl) sym)
+                 (start-with? (qualified-name decl) sym))))
+           (map
+             (fn [decl]
+               {:name (:value decl)
+                :ns (:module-name decl)
+                :args (or
+                        (-> decl :annotation :signatureRaw)
+                        (-> decl :signatureRaw))
+                :doc (:doc decl)
+                :value (:value decl)
+                :module-name (:module-name decl)}))
+           (sort-by (juxt :value :module-name))))))
+
+
+;; (let [p-file "/Users/mrundberget/projects/package.elm-lang.org"
+;;       m-file "/Users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm"
+;;       p (get-project p-file)
+;;       m (get-module-ast p-file m-file)
+;;       ms (:file-asts p)]
+
+
+
+;;   ;;   (->> (get-jump-to-candidates m ms)
+;;   ;;        (map #(select-keys % [:module-name :value]))
+;;   ;;        (map println))
+
+;;   ;;   (->> (get-hints {:token "decode"} m-file p-file)
+;;   ;;        (map-println))
+;;   (->> (get-hints {:token "Json."} m-file p-file)
+;;        (map println))
+
+
+;;   )
+
+
+
 
 
 ;; (->> @project-asts
@@ -328,8 +413,7 @@
 (behavior ::update-ast-status-on-editor-change
           :triggers #{:focus}
           :reaction (fn [ed]
-                      (when (not (object/has-tag? ed :editor.elm))
-                        (update-status-for-editor ed))))
+                      (update-status-for-editor ed)))
 
 
 

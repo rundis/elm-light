@@ -32,8 +32,6 @@ doPackageInstall();
 
 
 
-
-
 // Start parsing as early as possible
 startWatcher();
 parseSourceFiles();
@@ -157,14 +155,8 @@ function startMessageListener() {
         case "elm.repl.restart":
           handleReplRestart(cb);
           break;
-        case "editor.elm.hint":
-          handleHint(cb, data);
-          break;
         case "docs.elm.search":
           handleDocsSearch(cb, data);
-          break;
-        case "editor.elm.doc":
-          handleSingleDoc(cb, data);
           break;
 
 
@@ -618,118 +610,9 @@ function handleGendoc(clientId, msg) {
 
 
 
-function aclSearch(args, callback) {
-  var aclPath = path.join(process.env.NODE_PATH, 'elm-oracle/bin/elm-oracle');
-  var outBuffer = "";
-  var errBuff = "";
-
-  var acl = cp.fork(aclPath, args, {cwd: process.cwd(),
-                                    silent: true,
-                                    execPath: process.execPath,
-                                    env: {"ATOM_SHELL_INTERNAL_RUN_AS_NODE": 1}});
-
-  acl.stdout.on("data", function(out) {
-    outBuffer += out;
-  });
-  acl.stderr.on("data", function(err) {
-    console.error("Err from elm-oracle: " + err);
-  });
-
-  acl.on("exit", function(exitCode) {
-    if(exitCode === 0) {
-      var res = JSON.parse(outBuffer);
-      callback(null, res);
-    } else {
-      callback("Error when calling elm-oracle : " + exitCode, null);
-    }
-  });
-}
-
-function handleHint(clientId, msg) {
-  var token = msg.token;
-  var args = [msg.path, token.string];
-  var channel = msg.channel;
-
-
-  if(!msg.path) {
-    send([clientId, "editor.elm.hints.result", []]);
-    return;
-  }
-
-  aclSearch(args, function(err, res) {
-    if(!err) {
-      var completions =
-          res.map(function(x) {
-            return {text: (x.name.indexOf(token) === 0 ?
-                            x.name + " (" + x.fullName + ")" :
-                            x.fullName) + " :: " + x.signature,
-                    completion: x.name.indexOf(token) === 0 ? x.name : x.fullName};
-          });
-
-      send([clientId, "editor.elm.hints.result", {channel: channel, token: token, completions: completions}]);
-    } else {
-      send([clientId, "editor.elm.hints.result", {channel: channel, token: token, completions: []}]);
-    }
-  });
-}
-
 function handleDocsSearch(clientId, msg) {
-
-  var candidates =
-      wrench.readdirSyncRecursive(process.cwd())
-        .filter(function (f) { return path.extname(f) === ".elm"; });
-
-  if(candidates.length === 0) { // need an elm-file for completions/docs
-    send([clientId, "doc.search.results", []]);
-  }
-
-  var args = [candidates[0], msg.search];
-  aclSearch(args, function(err, res) {
-    if(!err) {
-      var items = res.map(function(x) {
-                    return {ns: x.fullName,
-                      name: x.name,
-                      args: x.signature,
-                      doc: x.comment};
-                  });
-
-        send([clientId, "doc.search.results", items]);
-    } else {
-      send([clientId, "doc.search.results", []]);
-    }
-  });
-}
-
-
-function handleSingleDoc(clientId, msg) {
-  var args = [msg.path, msg.sym];
-
-
-  if(!msg.path) {
-    send([clientId, "editor.elm.doc.result", null]);
-    return;
-  }
-
-  aclSearch(args, function(err, res) {
-    if(!err) {
-      var items =
-          res.map(function(x) {
-            return {ns: x.fullName,
-                    name: x.name,
-                    args: x.signature,
-                    doc: x.comment,
-                    loc: msg.loc};
-          });
-
-      if (items.length > 1) {
-        items = items.filter(function (x) {return x.ns === msg.sym;});
-      }
-
-      send([clientId, "editor.elm.doc.result", items.length === 1 ? items[0] : null]);
-    } else {
-      send([clientId, "editor.elm.doc.result", null]);
-    }
-  });
+  // workaround, just pass the msg back, will perform search client side
+  send([clientId, "doc.search.results", msg])
 }
 
 

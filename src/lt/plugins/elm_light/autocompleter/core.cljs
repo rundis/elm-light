@@ -56,8 +56,8 @@
   (when (seq hints)
     (->> hints
          (filter #(< (.-length (:displayText %)) 1000))
-         distinct-completions
-         (sort-by :text)
+         ;distinct-completions
+         ;(sort-by :text)
          (take 25)
          (hash-map :list)
          (#(let [fst (-> % :list first)]

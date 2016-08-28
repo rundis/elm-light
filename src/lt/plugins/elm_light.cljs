@@ -1,9 +1,10 @@
 (ns lt.plugins.elm-light
   (:require [lt.plugins.elm-light.selection :as elm-sel]
-            [lt.plugins.elm-light.utils :refer [find-symbol project-path reactor-path parse-json-file]]
-            [lt.plugins.elm-light.clients :refer [try-connect get-eval-client get-eval-client-if-connected]]
+            [lt.plugins.elm-light.utils :refer [find-symbol project-path reactor-path parse-json-file str-contains]]
+            [lt.plugins.elm-light.clients :refer [try-connect get-eval-client get-eval-client-if-connected elm]]
             [lt.plugins.elm-light.elm-ast :as elm-ast]
             [lt.plugins.elm-light.linter :as linter]
+            [lt.plugins.elm-light.gutter :as gutter]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -207,25 +208,6 @@
 
 
 
-(behavior ::connect
-          :triggers #{:connect}
-          :reaction (fn [this path]
-                      (try-connect {:info {:path path}})))
-
-
-
-;;****************************************************
-;; DOCS
-;;****************************************************
-
-(behavior ::elm-doc-search
-          :triggers #{:types+}
-          :reaction (fn [this cur]
-                      (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
-
-
-
-
 ;;****************************************************
 ;; Eval
 ;;****************************************************
@@ -321,6 +303,30 @@
                               (object/raise b :navigate! (get-url))
                               (js-util/wait 100 #(object/raise b :navigate! (get-url)))))
                           (notifos/done-working)))))
+
+
+
+;;****************************************************
+;; DOCS
+;;****************************************************
+
+(behavior ::elm-doc-search
+          :triggers #{:types+}
+          :reaction (fn [this cur]
+                      (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
+
+(behavior ::elm-doc-search-results
+          :desc "Workaround behavior for showing doc search results in sidebar"
+          :triggers #{:elm.doc.search.results}
+          :reaction (fn [_ [client-id command msg]]
+                      (object/raise clients/clients
+                                      :message
+                                      [client-id
+                                       command
+                                       (elm-ast/search-docs
+                                         (:search msg)
+                                         (:project-dir msg))])))
+
 
 
 ;;****************************************************
@@ -423,29 +429,49 @@
                                                 (.trim doc))
                                          :loc pos})))))
 
-(behavior ::elm-parse-editor
-          :triggers #{:change :focus :project-connected :project-disconnected}
+
+
+(behavior ::elm-parse-editor-on-change
+          :desc "Parse a connected elm editor on content change"
+          :triggers #{:change}
           :debounce 100
           :reaction (fn [ed]
-                      (if-let [client (get-eval-client-if-connected ed :editor.elm.ast.parsetext)]
-                        (when client (and (= (pool/last-active) ed))
-                          (clients/send client
-                                        :editor.elm.ast.parsetext
-                                        {:code (editor/->val ed)}
-                                        :only ed))
-                        (do
-                          (object/raise ed :clear-linter-results!)
-                          (object/update! ed [:ast-status] assoc :status nil :error nil)
-                          (elm-ast/update-status-for-editor ed)))))
+                      (object/raise ed :elm.parse.editor)))
+
+
+(behavior ::elm-parse-editor
+          :desc "Initiate parsing of the content/elm code of the given editor"
+          :triggers #{:elm.parse.editor :focus :project-connected }
+          :reaction (fn [ed]
+                      (when (not (str-contains (-> @ed :info :path) "elm-stuff"))
+                        (let [client (get-eval-client-if-connected ed :editor.elm.ast.parsetext)
+                             path (-> @ed :info :path)]
+
+                         (when (and client
+                                  (= (pool/last-active) ed)
+                                  (not (str-contains path "elm-stuff")))
+                           (clients/send client
+                                         :editor.elm.ast.parsetext
+                                         {:code (editor/->val ed)}
+                                         :only ed))))))
+
+(behavior ::elm-editor-disconnected
+          :desc "Clean up state when project connection for an editor has been disconnected"
+          :triggers #{:project-disconnected}
+          :reaction (fn [ed]
+                      (do
+                        (object/raise ed :clear-linter-results!)
+                        (object/update! ed [:ast-status] assoc :status nil :error nil)
+                        (elm-ast/update-status-for-editor ed))))
 
 
 (behavior ::elm-parse-editor-result
+          :desc "Handle parse results for a parsed editors content"
           :triggers #{:editor.elm.ast.parsetext.result}
           :reaction (fn [ed res]
+                      ;(object/raise ed :)
                       (if-let [error (:error res)]
-                        (do
-                          (object/update! ed [:ast-status] assoc :status :error :error error)
-                          )
+                        (object/update! ed [:ast-status] assoc :status :error :error error)
                         (let [path (-> @ed :info :path)]
                           (object/update! ed [:ast-status] assoc :status :ok :error nil)
 
@@ -459,24 +485,6 @@
 
 
 
-
-
-;;****************************************************
-;; LT Connection stuff
-;;****************************************************
-
-
-(object/object* ::elm-lang
-                :tags #{:elm.lang})
-
-
-(def elm (object/create ::elm-lang))
-
-
-(scl/add-connector {:name "Elm"
-                    :desc "Select a directory to serve as the root of your elm project."
-                    :connect (fn []
-                               (dialogs/dir elm :connect))})
 
 
 ;; Commands
