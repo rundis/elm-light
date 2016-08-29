@@ -207,7 +207,7 @@ function startWatcher() {
 
 
     if (isSourceFile(sourceDirs, file) && event === "modified") {
-      parseAndSend(file);
+      console.log("Parse and send: " + file);
     }
 
     if (isSourceFile(sourceDirs, file) && event === "deleted") {
@@ -240,7 +240,8 @@ function parseSourceFiles() {
 
   sourceDirs.forEach(function (d) {
     walker.files(path.join(process.cwd(), d), function (basedir, filename, stat, next) {
-      if (path.extname(filename) === ".elm") {
+      if (path.extname(filename) === ".elm" &&
+         !(basedir.startsWith(path.join(process.cwd(), "elm-stuff") ))) {
         parseAndSend(path.join(basedir, filename));
       }
       next();
@@ -293,6 +294,7 @@ function getProjectDeps(projectDir) {
       return exposedPackages.indexOf(pck.name) > -1;
     });
 
+
   } catch (e) {
     console.log("Failed to get projectDeps: " + e.toString());
   }
@@ -303,7 +305,7 @@ function getProjectDeps(projectDir) {
 
 
 function parseAndSend(file) {
-  //console.log("Parse and send: " + file);
+
   try {
     var code = fs.readFileSync(file).toString();
     var ast = elmParser.parse(code);
