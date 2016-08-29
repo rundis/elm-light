@@ -1,0 +1,22 @@
+{
+    "name": "elm-light",
+    "preferGlobal": true,
+    "version": "0.0.1",
+    "author": "Magnus Rundberge <mrundberget@hotmail.com>",
+    "description": "Set up of node deps for Light Table elm-light plugin",
+    "license": "MIT",
+    "engines": {
+        "node": ">=0.10"
+    },
+    "dependencies": {
+        "express": "~1.6.0",
+        "d3": "~3.5.12",
+        "dagre-d3": "~0.4.11",
+        "fs-walk": "~0.0.1",
+        "harbor":  "~0.3.0",
+        "marked": "~0.3.6",
+        "ps-tree": "~1.0.1",
+        "wrench": "~1.5.8"
+
+    }
+}
