@@ -6116,6 +6116,15 @@ module.exports = (function() {
         s0 = peg$FAILED;
         if (peg$silentFails === 0) { peg$fail(peg$c210); }
       }
+      if (s0 === peg$FAILED) {
+        if (input.substr(peg$currPos, 2) === peg$c211) {
+          s0 = peg$c211;
+          peg$currPos += 2;
+        } else {
+          s0 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$c212); }
+        }
+      }
       peg$silentFails--;
       if (s0 === peg$FAILED) {
         s1 = peg$FAILED;
