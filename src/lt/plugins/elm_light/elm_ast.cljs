@@ -4,7 +4,8 @@
             [lt.objs.editor :as editor]
             [lt.objs.editor.pool :as pool]
             [lt.objs.statusbar :as statusbar]
-            [crate.binding :refer [bound]])
+            [crate.binding :refer [bound]]
+            [clojure.string :as s])
   (:require-macros [lt.macros :refer [defui behavior]]))
 
 
@@ -124,10 +125,11 @@
   (-> module :ast :moduleDeclaration :value))
 
 (defn exposeAll? [exposing]
-  (= "exposeAll" (-> exposing first :type)))
+  (= "exposeAll" (-> exposing :exports first :type)))
 
 (defn extract-exports [exposing]
   (->> exposing
+       :exports
        (map :value)))
 
 (defn exposed-by-module? [module candidate]
@@ -239,6 +241,47 @@
 
 
 
+
+(defn ->pos [ast-pos]
+  {:line (-> ast-pos :line dec)
+   :ch (-> ast-pos :column dec)})
+
+
+(defn ->range [location]
+  {:start (->pos (:start location))
+   :end (->pos (:end location))})
+
+
+(defn- in-range? [{:keys [ch line]} decl]
+  (let [{:keys [start end]} (->range (:location decl))]
+    (cond
+      (or (< line (:line start) )
+          (> line (:line end) ))
+      false
+
+      (or (and (= (:line start) line)
+               (< ch (:ch start) ))
+          (and (= (:line end) line)
+               (> ch (:ch end) )))
+      false
+
+      :else
+      true)))
+
+
+
+(defn find-top-level-declaration-by-pos
+  ([pos module]
+   (->> (:ast module)
+        :declarations
+        (filter #(in-range? pos %))
+        first))
+  ([pos project-dir module-file]
+   (find-top-level-declaration-by-pos
+     pos
+     (get-module-ast project-dir module-file))))
+
+
 ;; FEATURES
 
 
@@ -303,6 +346,88 @@
                 :value (:value decl)
                 :module-name (:module-name decl)}))
            (sort-by (juxt :value :module-name))))))
+
+
+;; Get gutter marker info for a given module
+(defn get-gutter-exposeds [module-file project-file]
+  (when-let [module (get-module-ast project-file module-file)]
+    (get-exposed-declarations module)))
+
+
+
+
+
+;; *********** REFACTORINGS !!! ***************************************
+(declare print-exports)
+
+
+(defn- print-export [export]
+  (str (if (= "binOpRef" (:type export))
+         (str "(" (:value export) ")")
+         (:value export))
+       (cond
+
+         (not (seq (:exports export)))
+         ""
+
+         :else
+         (str " (" (print-exports (:exports export)) ")" ))))
+
+(defn- print-exports [exports]
+  (cond
+    (not (seq exports))
+      ""
+    (= "exposeAll" (-> exports first :type))
+      ".."
+
+    :else
+    (->> (map print-export exports)
+         (s/join ", "))))
+
+
+(defn- print-exposing [{:keys [exports] :as exposing}]
+  (if-not (seq exports)
+    ""
+    (str "exposing ("
+         (print-exports exports)
+         ")")))
+
+
+(defn sym-exposed?
+  [sym
+   project-dir
+   module-file]
+  (-> (get-module-ast project-dir module-file)
+      (exposed-by-module? sym)))
+
+
+
+(defn expose-decl
+  "Adds an export to exposing node
+  NOTE: Does not check if exposeAll or already exposed."
+  [decl exposing]
+  (let [value (:value decl)]
+    (update-in exposing [:exports]
+              (fn [exports]
+                (conj
+                  exports
+                  (case (:type decl)
+                    "typeAliasDecl"
+                    {:type "adt"
+                     :value value}
+
+                    "typeDecl"
+                    {:type "adt"
+                     :value value}
+
+                    "binOpDef"
+                    {:type "binOpRef"
+                     :value value}
+
+                    {:type "ref"
+                     :value value}))))))
+
+
 
 
 ;; (let [p-file "/Users/mrundberget/projects/package.elm-lang.org"

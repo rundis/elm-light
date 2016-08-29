@@ -126,6 +126,16 @@
 
  [:editor.elm :lt.plugins.elm-light.gutter/elm-gutter-exposeds]
 
+ [:editor.elm :lt.plugins.elm-light.gutter/elm-gutter-exposeds-mark]
+
+ [:editor.elm :lt.plugins.elm-light.gutter/show-elm-gutter]
+
+
+ ;; **** Refactoring stuff *******
+ [:editor.elm :lt.plugins.elm-light/elm-expose-top-level]
+ [:editor.elm :lt.plugins.elm-light/elm-unexpose-top-level]
+
+
  ;; ***** Alternate autocompleter *****
 
   [:editor.elm :lt.object/add-tag :editor.keys.normal.elm] ;; Allow overriding tab which defaults to auto-complete command in std autocompleter plugin

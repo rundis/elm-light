@@ -76,7 +76,7 @@
         if (smallRE.test(ch)) {
           var isDef = source.pos === 1;
           source.eatWhile(idRE);
-          return isDef ? "variable-3" : "variable";
+          return isDef ? "def" : "variable";
         }
 
         if (digitRE.test(ch)) {

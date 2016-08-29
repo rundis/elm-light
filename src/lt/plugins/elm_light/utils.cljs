@@ -20,6 +20,7 @@
 (defn find-symbol [ed pos]
   (let [curr-tok (editor/->token ed pos)]
     (case (:type curr-tok)
+      "def" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "qualifier" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "variable" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))
       "variable-2" (str (find-symbol ed (assoc pos :ch (:start curr-tok))) (:string curr-tok))

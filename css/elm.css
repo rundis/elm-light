@@ -218,3 +218,15 @@ div.linter-res span.button {
 div.elmrepl .main {
   height:100%; width:100%; float:left; border-radius:0; box-sizing:border-box;
 }
+
+
+/* Elm gutter */
+div.elm-gutter-marker {
+  color:inherit;
+  background-color: inherit;
+  opacity: 0.3;
+}
+
+
+
+

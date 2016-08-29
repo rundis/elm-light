@@ -58,7 +58,8 @@ module.exports = (function() {
               return {
                 type: (type || "") + " module".trim(),
                 value: name,
-                exposing: exposing
+                exposing: exposing,
+                location: location()
               };
             },
         peg$c12 = "where",
@@ -82,7 +83,8 @@ module.exports = (function() {
               	type: "import",
                 value: module,
                 alias: alias,
-                exposing: exposing
+                exposing: exposing,
+                location: location()
               };
             },
         peg$c27 = "exposing",
@@ -91,7 +93,13 @@ module.exports = (function() {
         peg$c30 = { type: "literal", value: "(", description: "\"(\"" },
         peg$c31 = ")",
         peg$c32 = { type: "literal", value: ")", description: "\")\"" },
-        peg$c33 = function(exports) { return exports; },
+        peg$c33 = function(exports) {
+            	return {
+            		type: "exposing",
+                    exports: exports,
+                    location: location()
+                };
+            },
         peg$c34 = "..",
         peg$c35 = { type: "literal", value: "..", description: "\"..\"" },
         peg$c36 = function() {

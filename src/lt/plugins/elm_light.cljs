@@ -462,7 +462,8 @@
                       (do
                         (object/raise ed :clear-linter-results!)
                         (object/update! ed [:ast-status] assoc :status nil :error nil)
-                        (elm-ast/update-status-for-editor ed))))
+                        (elm-ast/update-status-for-editor ed)
+                        (object/raise ed :elm.gutter.exposeds.mark))))
 
 
 (behavior ::elm-parse-editor-result
@@ -478,9 +479,71 @@
                           ;; Is this really safe to do ?!
                           (elm-ast/upsert-ast! (project-path path)
                                                {:file path
-                                                :ast (:ast res)})))
+                                                :ast (:ast res)})
+                          (object/raise ed :elm.gutter.exposeds.mark)))
 
-                      (elm-ast/update-status-for-editor ed)))
+                      (do
+                        (elm-ast/update-status-for-editor ed)
+                        (object/raise ed :elm.gutter.refresh))))
+
+
+
+;;************ Refactoring behaviors ****************
+(defn- cm-pos->pos [cm-pos]
+  {:ch (.-ch cm-pos)
+   :line (.-line cm-pos)})
+
+
+(behavior ::elm-expose-top-level
+          :desc "Behavior to expose top level Elm declaration"
+          :triggers #{:elm.expose.top.level}
+          :reaction (fn [ed]
+                      (let [path (-> @ed :info :path)
+                            prj-path (project-path path)
+                            module (elm-ast/get-module-ast prj-path path)
+                            exposing (-> module :ast :moduleDeclaration :exposing)]
+
+                        (when-let [decl (elm-ast/find-top-level-declaration-by-pos
+                                            (editor/->cursor ed)
+                                            module)]
+                          (when-not (elm-ast/exposed-by-module? module (:value decl))
+                            (let [{:keys [start end]} (elm-ast/->range (:location exposing))
+                                  upd-exp (elm-ast/expose-decl decl exposing)
+                                  bm (editor/bookmark ed (editor/->cursor ed))]
+                              (editor/replace ed
+                                              start
+                                              end
+                                              (elm-ast/print-exposing upd-exp))
+                              (editor/move-cursor ed (cm-pos->pos (.find bm)))))))))
+
+
+(behavior ::elm-unexpose-top-level
+          :desc "Behavior to unexpose top level Elm declaration"
+          :triggers #{:elm.unexpose.top.level}
+          :reaction (fn [ed]
+                      (let [path (-> @ed :info :path)
+                            prj-path (project-path path)
+                            module (elm-ast/get-module-ast prj-path path)
+                            exposing (-> module :ast :moduleDeclaration :exposing)]
+
+                        (when-let [decl (elm-ast/find-top-level-declaration-by-pos
+                                          (editor/->cursor ed)
+                                          module)]
+                          (when (and (elm-ast/exposed-by-module? module (:value decl))
+                                     (not (elm-ast/exposeAll? exposing)))
+                            (let [{:keys [start end]} (elm-ast/->range (:location exposing))
+                                  upd-exp (elm-ast/unexpose-decl decl exposing)
+                                  bm (editor/bookmark ed (editor/->cursor ed))]
+                              (editor/replace ed
+                                              start
+                                              end
+                                              (elm-ast/print-exposing upd-exp))
+                              (editor/move-cursor ed (cm-pos->pos (.find bm)))))))))
+
+
+
+
+
 
 
 
@@ -531,6 +594,19 @@
               :exec (fn []
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.repl.restart)))})
+
+
+(cmd/command {:command :elm.expose-top-level
+              :desc "Elm: Expose top level definition"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.expose.top.level)))})
+
+(cmd/command {:command :elm.unexpose-top-level
+              :desc "Elm: Un-expose top level definition"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.unexpose.top.level)))})
 
 
 

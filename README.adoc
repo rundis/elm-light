@@ -22,9 +22,12 @@ http://elm-lang.org/[Elm] language plugin for Light Table
 
 image:https://badges.gitter.im/rundis/elm-light.svg[link="https://gitter.im/rundis/elm-light?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 
+
+
 == Installation
 Install using the Light Table plugin manager.
-Alternatively you can clone it into `$LT_USER_HOME\plugins`.
+Alternatively you can clone it into `$LT_USER_HOME\plugins`. (If you know what you are doing,
+this is a great way to try out the latest and greatests not yet released !)
 
 
 == Preconditions
