@@ -207,7 +207,7 @@ function startWatcher() {
 
 
     if (isSourceFile(sourceDirs, file) && event === "modified") {
-      console.log("Parse and send: " + file);
+      parseAndSend(file);
     }
 
     if (isSourceFile(sourceDirs, file) && event === "deleted") {
