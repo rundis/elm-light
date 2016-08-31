@@ -572,11 +572,6 @@
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.browse false)))})
 
-(cmd/command {:command :elm.browse.debug
-              :desc "Elm: View current elm file in browser with debugger (elm-reactor)"
-              :exec (fn []
-                      (when-let [ed (pool/last-active)]
-                        (object/raise ed :elm.browse true)))})
 
 (cmd/command {:command :elm.restart-repl
               :desc "Elm: Restart repl for current project"
