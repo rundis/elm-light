@@ -427,6 +427,14 @@
                     {:type "ref"
                      :value value}))))))
 
+(defn unexpose-decl
+  "Removes an export from and exposing node. Ignored if exposed through exposeAll (..)"
+  [decl exposing]
+  (let [value (:value decl)]
+    (update-in exposing [:exports]
+              (fn [exports]
+                (remove #(= value (:value %)) exports)))))
+
 
 
 

@@ -65,7 +65,8 @@
           (println type file)))
 
       (= (second msg) "doc.search.results")
-      (object/raise elm :elm.doc.search.results (assoc-in msg [2 :project-dir] (:dir @client)))
+      (object/raise elm :elm.doc.search.results
+                    (assoc-in msg [2 :project-dir] (:dir @client)))
 
 
       :else
@@ -160,6 +161,22 @@
                      :create (fn [opts]
                                (notifos/done-working "")
                                nil)}))
+
+
+;; TODO : Need to have this here for now, because behaviour must be defined before Elm object is created
+(behavior ::elm-doc-search-results
+          :desc "Workaround behavior for showing doc search results in sidebar"
+          :triggers #{:elm.doc.search.results}
+          :reaction (fn [_ [client-id command msg]]
+                      (println "Here !")
+                      (object/raise cs/clients
+                                      :message
+                                      [client-id
+                                       command
+                                       (ast/search-docs
+                                         (:search msg)
+                                         (:project-dir msg))])))
+
 
 
 ;;****************************************************

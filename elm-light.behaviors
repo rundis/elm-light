@@ -54,7 +54,7 @@
  [:editor.elm.common :-lt.plugins.auto-complete/textual-hints] ; just messes with autocomplete of elm stuff
 
  [:sidebar.docs.search :lt.plugins.elm-light/elm-doc-search]
- [:elm.lang :lt.plugins.elm-light/elm-doc-search-results]
+ [:elm.lang :lt.plugins.elm-light.clients/elm-doc-search-results]
 
 
 
@@ -67,10 +67,6 @@
  [:editor.elm :lt.plugins.elm-light.linter/clear-linter-results!]
  [:editor :lt.plugins.elm-light.linter/update-linter-on-editor-change]
 
-
- ;; Test related behaviors
- [:editor.elm :lt.plugins.elm-light.test/elm-test]
- [:editor.elm :lt.plugins.elm-light.test/elm-test-init]
 
  ;; Elm format
  [:editor.elm :lt.plugins.elm-light.format/elm-format]

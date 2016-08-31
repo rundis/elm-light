@@ -315,17 +315,6 @@
           :reaction (fn [this cur]
                       (conj cur {:label "elm" :trigger :docs.elm.search :file-types #{"elm"}})))
 
-(behavior ::elm-doc-search-results
-          :desc "Workaround behavior for showing doc search results in sidebar"
-          :triggers #{:elm.doc.search.results}
-          :reaction (fn [_ [client-id command msg]]
-                      (object/raise clients/clients
-                                      :message
-                                      [client-id
-                                       command
-                                       (elm-ast/search-docs
-                                         (:search msg)
-                                         (:project-dir msg))])))
 
 
 
