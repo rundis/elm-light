@@ -11,9 +11,15 @@
 (def icon-url
   (files/join utils/elm-plugin-dir "css" "export.svg"))
 
-(defui gutter-marker-exposed []
-  [:div.elm-gutter-marker "@"])
 
+(def marker-templ
+  (let [elem (.createElement js/document "div")]
+    (dom/html elem "@")
+    (dom/add-class elem "elm-gutter-marker")
+    elem))
+
+(defn gutter-marker-exposed []
+  (.cloneNode marker-templ true))
 
 
 (behavior ::show-elm-gutter
@@ -29,20 +35,17 @@
           :triggers #{:elm.gutter.refresh}
           :reaction (fn [ed]
                       (let [cm-ed (editor/->cm-ed ed)]
-                        (doseq [gutter (.-gutters cm-ed)]
-                          (println "gutter: " gutter)))
-
-                      (editor/operation
-                        (editor/->cm-ed ed)
-                        (fn []
-                          (.clearGutter (editor/->cm-ed ed) "elm-gutter")
-                          (doseq [bm (-> @ed :elm-exposeds-bookmarks)]
-                            (when-let [pos (js->clj (.find bm) :keywordize-keys true :force-obj true)] ;; sheit still a js object
-                              (when-let [line (.-line pos)]
-                                (.setGutterMarker (editor/->cm-ed ed)
-                                                  line
-                                                  "elm-gutter"
-                                                  (gutter-marker-exposed)))))))))
+                        (editor/operation
+                               cm-ed
+                               (fn []
+                                 (.clearGutter cm-ed "elm-gutter")
+                                 (doseq [bm (-> @ed :elm-exposeds-bookmarks)]
+                                   (when-let [pos (.find bm)]
+                                     (when-let [line (.-line pos)]
+                                       (.setGutterMarker cm-ed
+                                                         line
+                                                         "elm-gutter"
+                                                         (gutter-marker-exposed))))))))))
 
 
 
@@ -52,12 +55,16 @@
                       (let [path (-> @ed :info :path)
                             exposeds (ast/get-gutter-exposeds
                                        path
-                                       (utils/project-path path))]
-                        (doseq [bm (-> @ed :elm-exposeds-bookmarks)]
-                          (.clear bm))
-                        (->> (map (fn [exposed]
-                                    (editor/bookmark ed {:ch 1
-                                                         :line (-> exposed :location :start :line dec)}))
-                                  exposeds)
-                             (object/assoc-in! ed [:elm-exposeds-bookmarks]))
+                                       (utils/project-path path))
+                            cm-ed (editor/->cm-ed ed)]
+                        (editor/operation
+                          cm-ed
+                          (fn []
+                            (doseq [bm (-> @ed :elm-exposeds-bookmarks)]
+                              (.clear bm))
+                            (->> (map (fn [exposed]
+                                        (.setBookmark cm-ed #js {:ch 1
+                                                                 :line (-> exposed :location :start :line dec)}))
+                                      exposeds)
+                                 (object/assoc-in! ed [:elm-exposeds-bookmarks]))))
                         (object/raise ed :elm.gutter.refresh))))

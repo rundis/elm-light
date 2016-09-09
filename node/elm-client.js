@@ -20,6 +20,20 @@ var elmGlobals = {
 };
 
 
+/* Some polyfills */
+if (!String.prototype.endsWith) {
+  String.prototype.endsWith = function(searchString, position) {
+      var subjectString = this.toString();
+      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+        position = subjectString.length;
+      }
+      position -= searchString.length;
+      var lastIndex = subjectString.lastIndexOf(searchString, position);
+      return lastIndex !== -1 && lastIndex === position;
+  };
+}
+
+
 
 /* ----------- START CLIENT / BOOTSTRAP --------- */
 
@@ -199,10 +213,14 @@ function startWatcher() {
 
 
     if(relFile === "elm-stuff/exact-dependencies.json") {
-      sendAstMsg({
-        type: "packagechange"
-      });
-      parseAllPackageSources();
+      if ( event === "modified") {
+        parseAllPackageSources();
+      }
+      if (event === "deleted") {
+        sendAstMsg({
+          type: "packagesDeleted"
+        });
+      }
     }
 
 
@@ -308,12 +326,18 @@ function parseAndSend(file) {
 
   try {
     var code = fs.readFileSync(file).toString();
-    var ast = elmParser.parse(code);
-    sendAstMsg({
-      file: file,
-      type: "parsed",
-      ast: ast
-    });
+    var start = new Date().getTime();
+
+    if (code.length > 0) {
+      var ast = elmParser.parse(code);
+      // console.log("Parsed sourcefile (" + ((new Date().getTime()) - start)  + " ms) - " + file );
+
+      sendAstMsg({
+        file: file,
+        type: "parsed",
+        ast: ast
+      });
+    }
 
   } catch (e) {
     sendAstMsg({
@@ -327,11 +351,16 @@ function parseAndSend(file) {
 function parseAndSendPackageSource(package, file) {
   try {
     var exposedModules = getExposedModules(package.packageDir);
-    var ast = elmParser.parse(fs.readFileSync(file).toString());
 
-    if(exposedModules.indexOf(ast.moduleDeclaration.value) > -1) {
-      //console.log("Parse and send package file: " + file);
+    var shouldParse = exposedModules.map (function (mod) {
+      return mod.replace(".", path.sep) + ".elm";
+    }).find(function (v) {
+      return file.endsWith(v);
+    });
 
+
+    if(shouldParse) {
+      var ast = elmParser.parse(fs.readFileSync(file).toString());
       sendAstMsg({
         file: file,
         type: "parsed",
@@ -341,7 +370,7 @@ function parseAndSendPackageSource(package, file) {
     }
 
   } catch(e) {
-    console.log("ERROR parsing package source: " + file + "\n" + e.toString());
+    console.error("ERROR parsing package source: " + file + "\n" + e.toString());
   }
 }
 
@@ -362,7 +391,7 @@ function getSourceDirs (projectDir) {
     sourceDirs = json["source-directories"];
 
   } catch(e) {
-    console.log("ERROR getting sourcedirs for: " + jsonPath + "\n" + e.toString());
+    console.error("ERROR getting sourcedirs for: " + jsonPath + "\n" + e.toString());
   }
   return sourceDirs;
 }
@@ -428,7 +457,9 @@ function handleReloadAst(clientId) {
 
 function handleParseEditorText(clientId, msg) {
   try {
+    var start = new Date().getTime();
     var ast = elmParser.parse(msg.code);
+    // console.log("Parsed editor contents in (" + ((new Date().getTime()) - start)  + " ms) ");
     send([clientId, "editor.elm.ast.parsetext.result", {ast: ast}]);
   } catch(e) {
     send([clientId, "editor.elm.ast.parsetext.result", {error: e}]);

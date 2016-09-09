@@ -228,5 +228,56 @@ div.elm-gutter-marker {
 }
 
 
+/* Hinter customization */
+.elm-completion .display-text, .elm-completion .module {
+  display: inline-block;
+  line-height:inherit;
+}
+
+.elm-completion .display-text {
+  width: 20em;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+
+.elm-completion .module {
+  opacity: 0.5;
+  height:auto;
+  vertical-align:top;
+}
+
+.elm-completion .module:not(:empty) {
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+
+
+
+
+
+/* Selector */
+div.elm-select {
+  position: relative;
+  display: inline-block;
+  background: #3b3f41;
+  padding:0;
+  margin: 0;
+}
+
+
+div.elm-select select {
+  -webkit-appearance:none;
+  vertical-align: top;
+  font-size: inherit;
+  font-family: inherit;
+  font-size: 110%;
+  color: white;
+  background: #3b3f41;
+  border: 1px solid #3b3f41;
+  padding: 2px;
+  max-height: 20em;
+}
+
 
 

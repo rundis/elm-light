@@ -5,6 +5,7 @@
             [lt.plugins.elm-light.elm-ast :as elm-ast]
             [lt.plugins.elm-light.linter :as linter]
             [lt.plugins.elm-light.gutter :as gutter]
+            [lt.plugins.elm-light.widgets.selector :as selector]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -423,7 +424,7 @@
 (behavior ::elm-parse-editor-on-change
           :desc "Parse a connected elm editor on content change"
           :triggers #{:change}
-          :debounce 100
+          :debounce 300
           :reaction (fn [ed]
                       (object/raise ed :elm.parse.editor)))
 
@@ -439,6 +440,7 @@
                          (when (and client
                                   (= (pool/last-active) ed)
                                   (not (str-contains path "elm-stuff")))
+
                            (clients/send client
                                          :editor.elm.ast.parsetext
                                          {:code (editor/->val ed)}
@@ -459,21 +461,23 @@
           :desc "Handle parse results for a parsed editors content"
           :triggers #{:editor.elm.ast.parsetext.result}
           :reaction (fn [ed res]
-                      ;(object/raise ed :)
+
+
                       (if-let [error (:error res)]
-                        (object/update! ed [:ast-status] assoc :status :error :error error)
+                        (do
+                          (object/update! ed [:ast-status] assoc :status :error :error error)
+                          (object/raise ed :elm.gutter.refresh))
                         (let [path (-> @ed :info :path)]
                           (object/update! ed [:ast-status] assoc :status :ok :error nil)
 
                           ;; Is this really safe to do ?!
-                          (elm-ast/upsert-ast! (project-path path)
+                          (elm-ast/upsert-ast! (-> (get-editor-client ed) deref :dir)
                                                {:file path
                                                 :ast (:ast res)})
                           (object/raise ed :elm.gutter.exposeds.mark)))
 
-                      (do
-                        (elm-ast/update-status-for-editor ed)
-                        (object/raise ed :elm.gutter.refresh))))
+
+                      (elm-ast/update-status-for-editor ed)))
 
 
 
@@ -530,7 +534,92 @@
                               (editor/move-cursor ed (cm-pos->pos (.find bm)))))))))
 
 
+(behavior ::elm-sort-imports
+          :desc "Behavior to sort import declarations for given Elm editor"
+          :triggers #{:elm.sort.imports}
+          :reaction (fn [ed]
+                      (let [path (-> @ed :info :path)
+                            prj-path (project-path path)
+                            module (elm-ast/get-module-ast prj-path path)
+                            imports (-> module :ast :imports :imports)
+                            location (-> module :ast :imports :location)]
 
+                        (when (seq imports)
+                          (let [{:keys [start end]} (elm-ast/->range location)
+                                  bm (editor/bookmark ed (editor/->cursor ed))]
+                              (editor/replace ed
+                                              start
+                                              end
+                                              (elm-ast/print-imports
+                                                (partial elm-ast/sort-imports-default prj-path)
+                                                imports))
+                              (editor/move-cursor ed (cm-pos->pos (.find bm))))))))
+
+
+
+(behavior ::elm-autoimport-module-selected
+          :desc "Behaviour triggered when user selects a module in select for autoimport suggestions"
+          :triggers #{:elm.autoimport.module.selected}
+          :reaction (fn [ed item]
+                      (let [path (-> @ed :info :path)
+                            prj-path (project-path path)
+                            pos (editor/->cursor ed)
+                            bm (editor/bookmark ed pos)
+                            token (find-symbol ed pos)
+                            aliaz (-> (s/split token #"\.") first)
+                            module (elm-ast/get-module-ast prj-path path)
+                            imports (-> module :ast :imports :imports)
+                            {:keys [start end]} (-> module
+                                                    :ast
+                                                    :imports
+                                                    :location
+                                                    elm-ast/->range)]
+
+                        (let [upd-imports (elm-ast/upsert-imports (:module-name item)
+                                                                  aliaz
+                                                                  imports)]
+                          (editor/replace ed
+                                          start
+                                          end
+                                          (elm-ast/print-imports
+                                            (partial elm-ast/sort-imports-default prj-path)
+                                            upd-imports))
+                          (editor/move-cursor ed (cm-pos->pos (.find bm)))
+                          (editor/focus ed)))))
+
+
+(behavior ::elm-autoimport-module-init
+          :desc "Behaviour triggered when user tries to autoimport module for an aliased declaration"
+          :triggers #{:elm.autoimport.module.init}
+          :reaction (fn [ed]
+                      (let [path (-> @ed :info :path)
+                            pos (editor/->cursor ed)
+                            token (find-symbol ed pos)
+                            token-parts (if token (s/split token #"\.") [])]
+
+                        (when (and (= 2 (count token-parts))
+                                   (re-find #"[A-Z].*" (first token-parts)))
+
+                          (let [candidates (->> (elm-ast/get-autoimport-candidates (first token-parts)
+                                                                                   (second token-parts)
+                                                                                   path
+                                                                                   (project-path path))
+                                                (map #(assoc % :label (str (:module-name %)
+                                                                           (when-let [pck (:package %)]
+                                                                             (str " (" (:name pck) ")"))))))]
+
+                            (cond
+                              (= 1 (count candidates))
+                              (object/raise ed
+                                            :elm.autoimport.module.selected
+                                            (first candidates))
+
+                              (< 0 (count candidates))
+                              (selector/make {:ed ed
+                                              :pos pos
+                                              :behavior :elm.autoimport.module.selected
+                                              :items candidates})
+                              :else nil))))))
 
 
 
@@ -591,6 +680,19 @@
               :exec (fn []
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.unexpose.top.level)))})
+
+(cmd/command {:command :elm.autoimport.module
+              :desc "Elm: Autoimport module"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.autoimport.module.init)))})
+
+(cmd/command {:command :elm.sort.imports
+              :desc "Elm: Sort imports"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.sort.imports)))})
+
 
 
 

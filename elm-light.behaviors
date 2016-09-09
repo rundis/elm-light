@@ -1,5 +1,5 @@
 [[:app :lt.objs.plugins/load-js ["mode/elm.js"
-                                 "js/show-hint.js"
+                                 "js/show-hint2.js"
                                  "js/react.min.js"
                                  "js/highlight.pack.js"
                                  "elm/ModuleBrowser/moduleBrowser.js"
@@ -120,10 +120,10 @@
 
  [:editor.elm :lt.plugins.elm-light.hinter/elm-hints]
 
+ [:editor.elm :lt.plugins.elm-light.hinter/elm-hints-parser-results]
+
  [:editor.elm :lt.plugins.elm-light.gutter/elm-gutter-exposeds]
-
  [:editor.elm :lt.plugins.elm-light.gutter/elm-gutter-exposeds-mark]
-
  [:editor.elm :lt.plugins.elm-light.gutter/show-elm-gutter]
 
 
@@ -131,6 +131,11 @@
  [:editor.elm :lt.plugins.elm-light/elm-expose-top-level]
  [:editor.elm :lt.plugins.elm-light/elm-unexpose-top-level]
 
+
+ [:editor.elm :lt.plugins.elm-light/elm-autoimport-module-selected]
+ [:editor.elm :lt.plugins.elm-light/elm-autoimport-module-init]
+
+ [:editor.elm :lt.plugins.elm-light/elm-sort-imports]
 
  ;; ***** Alternate autocompleter *****
 

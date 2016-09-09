@@ -20,7 +20,6 @@
   (str (- (curr-time) start) " ms"))
 
 
-
 ;; TODO: Needs to be configurable (keymap and preferences for completeSingle etc)
 (def default-options
   {:async true
@@ -40,9 +39,9 @@
 (defn- distinct-completions [hints]
   (let [seen #js {}]
     (filter (fn [hint]
-              (if (true? (aget seen (:text hint)))
+              (if (true? (aget seen (str (:moduleName hint) "_" (:text hint) )))
                 false
-                (aset seen (:text hint) true)))
+                (aset seen (str (:moduleName hint) "_" (:text hint) ) true)))
             hints)))
 
 
@@ -53,16 +52,16 @@
 (defn- process-hint-results
   "Prepare found hints for display through CM showHint"
   [hints]
+
   (when (seq hints)
-    (->> hints
-         (filter #(< (.-length (:displayText %)) 1000))
-         ;distinct-completions
-         ;(sort-by :text)
-         (take 25)
-         (hash-map :list)
-         (#(let [fst (-> % :list first)]
-             (assoc % :from (:from fst) :to (:to fst)))) ;; allthough we've enforced from-to on each item, CM insists on having this props at root level to
-         clj->js)))
+     (->> hints
+          (filter #(< (.-length (:displayText %)) 1000))
+          distinct-completions
+          (take 25)
+          (hash-map :list)
+          (#(let [fst (-> % :list first)]
+              (assoc % :from (:from fst) :to (:to fst)))) ;; allthough we've enforced from-to on each item, CM insists on having this props at root level to
+          clj->js)))
 
 
 
@@ -105,17 +104,21 @@
 
 (defn- init-show-hint-ch
   "Creates a channel for writing results that are to be popped up with the hinter ui
-   Displays hint results async by calling the showHint plugin callback when
-   results are received on the channel"
+  Displays hint results async by calling the showHint plugin callback when
+  results are received on the channel"
   [ed]
   (let [ch (chan)]
     (js/CodeMirror.showHint (editor/->cm-ed ed)
                             (fn [_ cb]
-                              (go
-                                (let [hints (<! ch)]
-                                  (cb (process-hint-results hints)))))
+                              (let [chs (object/raise-reduce ed :init-hints [])]
+                                (when (seq chs)
+                                  (go
+                                   (let [hints (<! ch)]
+                                     (cb (process-hint-results hints))))
+                                  (listen-for-hint-results ed chs ch))))
                             (clj->js default-options))
     ch))
+
 
 
 (behavior ::start-hinting
@@ -123,20 +126,15 @@
           :desc "Autocompleter: Start hinting"
           :reaction (fn [ed]
                       (let [pos (editor/->cursor ed)
-                            line-handle (editor/line-handle ed (:line pos))
-                            chs (object/raise-reduce ed :init-hints [])]
-                         (js/CodeMirror.off line-handle "change" on-line-change)
-                         ;; YODO: Be nice to check if a proper channel was returned
-                         (if (seq chs)
-                           (do
-                             (listen-for-hint-results ed chs (init-show-hint-ch ed))
-                             (js/CodeMirror.on line-handle "change" on-line-change))
-                           (maybe-close-hinter ed)))))
+                            line-handle (editor/line-handle ed (:line pos))]
+                        (when-not (completion-active? ed)
+                          (init-show-hint-ch ed)))))
 
 
 
 (behavior ::auto-show-on-input
           :triggers #{:input}
+          :debounce 10
           :desc "Autocompleter: Show on change"
           :reaction (fn [ed _ ch]
                       (object/raise ed :start-hinting)))

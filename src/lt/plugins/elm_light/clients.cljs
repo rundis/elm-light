@@ -39,7 +39,7 @@
 
 
 (defn on-elm-message [client data]
-  (let [msg (js->clj data :keywordize-keys true)
+  (let [msg (u/mod-js->clj data :keywordize-keys true)
         logTime (js/Date.)
         logPrefix (str (.getSeconds logTime) ":" (.getMilliseconds logTime) " >>")]
     (cond
@@ -62,6 +62,15 @@
                                       {:file file
                                        :ast ast
                                        :package package}))
+          "deleted" (do
+                      (println "Delted file : " file)
+                      (ast/delete-ast! (:dir @client) file))
+
+          "packagesDeleted" (do
+                              (ast/delete-package-asts! (:dir @client))
+                              (notifos/set-msg! (str "Elm stuff for " (:dir @client) " was nuked, all package ASTs are lost. Do a package install or lint to get them back !")
+                                                {:class "error"}))
+
           (println type file)))
 
       (= (second msg) "doc.search.results")
@@ -168,7 +177,6 @@
           :desc "Workaround behavior for showing doc search results in sidebar"
           :triggers #{:elm.doc.search.results}
           :reaction (fn [_ [client-id command msg]]
-                      (println "Here !")
                       (object/raise cs/clients
                                       :message
                                       [client-id
@@ -199,4 +207,6 @@
                     :desc "Select a directory to serve as the root of your elm project."
                     :connect (fn []
                                (dialogs/dir elm :connect))})
+
+
 
