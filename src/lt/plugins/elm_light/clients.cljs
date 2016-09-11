@@ -55,21 +55,22 @@
       (= (second msg) "elm.ast.update")
       (let [{:keys [file type ast error package]} (last msg)]
         (case type
-          "parseError" (console/error (str file "\n" error))
-          "parsed" (do
-                     ;(println logPrefix "Parsed msg: " file)
-                     (ast/upsert-ast! (:dir @client)
-                                      {:file file
-                                       :ast ast
-                                       :package package}))
-          "deleted" (do
-                      (println "Delted file : " file)
-                      (ast/delete-ast! (:dir @client) file))
+          "parseError"
+          (console/error (str file "\n" error))
 
-          "packagesDeleted" (do
-                              (ast/delete-package-asts! (:dir @client))
-                              (notifos/set-msg! (str "Elm stuff for " (:dir @client) " was nuked, all package ASTs are lost. Do a package install or lint to get them back !")
-                                                {:class "error"}))
+          "parsed"
+          (ast/upsert-ast! (:dir @client)
+                           {:file file
+                            :ast ast
+                            :package package})
+          "deleted"
+          (ast/delete-ast! (:dir @client) file)
+
+          "packagesDeleted"
+          (do
+            (ast/delete-package-asts! (:dir @client))
+            (notifos/set-msg! (str "Elm stuff for " (:dir @client) " was nuked, all package ASTs are lost. Do a package install or lint to get them back !")
+                              {:class "error"}))
 
           (println type file)))
 
