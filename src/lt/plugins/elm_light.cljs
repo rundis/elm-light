@@ -487,6 +487,12 @@
    :line (.-line cm-pos)})
 
 
+(defn- safe-move-cursor [ed bm pos]
+  (if-let [bm-pos (.find bm)]
+    (editor/move-cursor ed (cm-pos->pos bm-pos))
+    (editor/move-cursor ed pos)))
+
+
 (behavior ::elm-expose-top-level
           :desc "Behavior to expose top level Elm declaration"
           :triggers #{:elm.expose.top.level}
@@ -502,12 +508,13 @@
                           (when-not (elm-ast/exposed-by-module? module (:value decl))
                             (let [{:keys [start end]} (elm-ast/->range (:location exposing))
                                   upd-exp (elm-ast/expose-decl decl exposing)
-                                  bm (editor/bookmark ed (editor/->cursor ed))]
+                                  pos (editor/->cursor ed)
+                                  bm (editor/bookmark ed pos)]
                               (editor/replace ed
                                               start
                                               end
                                               (elm-ast/print-exposing upd-exp))
-                              (editor/move-cursor ed (cm-pos->pos (.find bm)))))))))
+                              (safe-move-cursor ed bm pos)))))))
 
 
 (behavior ::elm-unexpose-top-level
@@ -526,12 +533,13 @@
                                      (not (elm-ast/exposeAll? exposing)))
                             (let [{:keys [start end]} (elm-ast/->range (:location exposing))
                                   upd-exp (elm-ast/unexpose-decl decl exposing)
-                                  bm (editor/bookmark ed (editor/->cursor ed))]
+                                  pos (editor/->cursor ed)
+                                  bm (editor/bookmark ed pos)]
                               (editor/replace ed
                                               start
                                               end
                                               (elm-ast/print-exposing upd-exp))
-                              (editor/move-cursor ed (cm-pos->pos (.find bm)))))))))
+                              (safe-move-cursor ed bm pos)))))))
 
 
 (behavior ::elm-sort-imports
@@ -546,14 +554,15 @@
 
                         (when (seq imports)
                           (let [{:keys [start end]} (elm-ast/->range location)
-                                  bm (editor/bookmark ed (editor/->cursor ed))]
-                              (editor/replace ed
-                                              start
-                                              end
-                                              (elm-ast/print-imports
-                                                (partial elm-ast/sort-imports-default prj-path)
-                                                imports))
-                              (editor/move-cursor ed (cm-pos->pos (.find bm))))))))
+                                pos (editor/->cursor ed)
+                                bm (editor/bookmark ed (editor/->cursor ed))]
+                            (editor/replace ed
+                                            start
+                                            end
+                                            (elm-ast/print-imports
+                                              (partial elm-ast/sort-imports-default prj-path)
+                                              imports))
+                            (safe-move-cursor ed bm pos))))))
 
 
 
@@ -584,7 +593,7 @@
                                           (elm-ast/print-imports
                                             (partial elm-ast/sort-imports-default prj-path)
                                             upd-imports))
-                          (editor/move-cursor ed (cm-pos->pos (.find bm)))
+                          (safe-move-cursor ed bm pos)
                           (editor/focus ed)))))
 
 
