@@ -155,13 +155,13 @@
                                                                      (project-path path)
                                                                      path)
                             (do ; don't need to parse module header for this scenario
-                              (->> (ast/get-hints {:token (:string token)
-                                                  :pos pos
-                                                  :ed ed}
-                                                 path
-                                                 (project-path path))
-                                  (->hints token)
-                                  (put! ch))
+                              (->> (time (ast/get-hints {:token (:string token)
+                                                    :pos pos
+                                                    :ed ed}
+                                                   path
+                                                   (project-path path)))
+                                   (->hints token)
+                                   (put! ch))
                               (conj channels ch))
                             (let [ch-id (store-ch ed ch)]
                               (bg-parser ed ch-id ast/elm-parser-path (editor/->val ed))

@@ -188,6 +188,44 @@
 
 
 
+(defn find-type-exposing [module-exposing type-name]
+  (->> module-exposing
+       :exports
+       :exports
+       (filter #(= type-name (:value %)))
+       first))
+
+(defn find-import-type-exposing [imp owning-type-name type-name]
+  (->> imp
+       :exposing
+       :exports
+       :exports
+       (filter #(= owning-type-name (:value %)))
+       first))
+
+(defn enrich-type-declarations
+  [module-exposing
+   exp-all?
+   module-name
+   package
+   file
+   type-decl
+   ]
+  (let [type-exposing (find-type-exposing module-exposing (:value type-decl))
+        exp-all-type? (exposeAll? type-exposing)
+        exports-type (set (extract-exports type-exposing))
+        exp-by-mod? #(or exp-all?
+                         exp-all-type?
+                         (contains? exports-type %))]
+
+    (->> (:adtDefs type-decl)
+                   (map #(assoc % :exposed? (exp-by-mod? (:value %))
+                           :owning-type-name (:value type-decl)
+                           :file file
+                           :module-name module-name
+                           :package package)))))
+
+
 (defn enrich-module-declarations [module]
   (let [exposing (-> module :ast :moduleDeclaration :exposing)
         expAll? (exposeAll? exposing)
@@ -201,8 +239,19 @@
          (map #(assoc % :exposed?  (exp-by-mod? (:value %))
                  :file file
                  :module-name module-name
-                 :package package)))))
+                 :package package))
+         (mapcat (fn [decl]
+                   (case (:type decl)
+                     "typeDecl"
+                     (conj (enrich-type-declarations
+                             exposing
+                             expAll?
+                             module-name
+                             package
+                             file
+                             decl) decl)
 
+                     [decl]))))))
 
 
 
@@ -210,21 +259,36 @@
   (->> (enrich-module-declarations module)
        (filter :exposed?)))
 
+(def get-exposed-declarations-memo
+  (memoize
+    (fn [module]
+     (get-exposed-declarations module))))
+
+
 (defn get-import-candidate-tokens
-  [imp-module-name
+  [imp
+   imp-module-name
    imp-alias
    imp-exported-names
    imp-exports-all?
    exposed-declaration]
 
-  (let [decl-name (:value exposed-declaration)]
-        (-> #{(str imp-module-name "." decl-name )
-              (when imp-alias
-                (str imp-alias "." decl-name))
-              (when (or imp-exports-all?
-                        (contains? imp-exported-names decl-name))
-                decl-name)}
-            (disj nil))))
+  (let [decl-name (:value exposed-declaration)
+        type-exposing (when (= "adtDef" (:type exposed-declaration))
+                        (find-import-type-exposing imp
+                                                   (:owning-type-name exposed-declaration)
+                                                   (:value exposed-declaration)))
+        exp-all-type? (exposeAll? type-exposing)
+        exports-type (set (extract-exports type-exposing))]
+    (-> #{(if imp-alias
+            (str imp-alias "." decl-name)
+            (str imp-module-name "." decl-name ))
+          (when (or imp-exports-all?
+                    exp-all-type?
+                    (contains? imp-exported-names decl-name)
+                    (contains? exports-type decl-name))
+            decl-name)}
+        (disj nil))))
 
 
 (defn get-external-candidates [module modules]
@@ -234,7 +298,7 @@
         external-exposed (->> modules
                               (filter #(and (not= curr-module-name (get-module-name %))
                                             (contains? imported-mod-names (get-module-name %))))
-                              (mapcat #(get-exposed-declarations %))
+                              (mapcat #(get-exposed-declarations-memo %))
                               (group-by :module-name))]
     (->> imports
          (mapcat
@@ -243,7 +307,8 @@
                    imp-exports-all? (exposeAll? (:exposing imp))]
                (->> (get external-exposed (:value imp))
                     (map #(assoc % :candidate-tokens
-                            (get-import-candidate-tokens (:value imp)
+                            (get-import-candidate-tokens imp
+                                                         (:value imp)
                                                          (:alias imp)
                                                          imp-exported-names
                                                          imp-exports-all?
@@ -251,18 +316,16 @@
 
 
 
+(defn get-core-modules [all-modules]
+  (->> (filter #(= "elm-lang/core" (-> % :package :name)) all-modules)
+                     (group-by #(-> % :ast :moduleDeclaration :value))))
 
-
-
-
+;; TODO: Could potentially be memoized...
 (defn get-default-candidates
   "Get candidates for Elm default imports as per
   https://github.com/elm-lang/core"
-  [all-modules]
-
-  (let [modules (->> (filter #(= "elm-lang/core" (-> % :package :name)) all-modules)
-                     (group-by #(-> % :ast :moduleDeclaration :value)))]
-    (concat
+  [modules]
+  (concat
       (->> (get modules "Basics")
            (mapcat get-exposed-declarations)
            (map #(assoc % :candidate-tokens #{(:value %)}) ))
@@ -271,10 +334,16 @@
            (map #(assoc % :candidate-tokens #{(str "Debug." (:value %))}) ))
       (->> (get modules "Maybe")
            (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens #{(str "Maybe." (:value %))}) ))
+           (map #(assoc % :candidate-tokens
+                   (if (contains? #{"Just" "Nothing"} (:value %))
+                     #{(:value %) (str "Maybe." (:value %))}
+                     #{(str "Maybe." (:value %))})) ))
       (->> (get modules "Result")
            (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens #{(str "Result." (:value %))}) ))
+           (map #(assoc % :candidate-tokens
+                   (if (contains? #{"Ok" "Err"} (:value %) )
+                     #{(:value %) (str "Result." (:value %))}
+                     #{(str "Result." (:value %))})) ))
       (->> (get modules "Platform")
            (mapcat get-exposed-declarations)
            (map #(assoc % :candidate-tokens
@@ -301,19 +370,30 @@
            (map #(assoc % :candidate-tokens
                    (if (= "::" (:value %))
                      #{"::"}
-                     #{(str "List." (:value %))})))))))
+                     #{(str "List." (:value %))}))))))
+
+(def get-default-candidates-memo
+  (memoize
+    (fn [core-modules]
+     (get-default-candidates core-modules))))
+
 
 (defn get-current-module-candidates [module]
   (let [mod-name (get-module-name module)]
     (->> (enrich-module-declarations module)
-         (map #(assoc % :candidate-tokens #{(:value %)
-                                            (str mod-name "." (:value %) ) })))))
+         (map #(assoc % :candidate-tokens #{(:value %)})))))
+
+
+
+
+
+
 
 (defn get-jump-to-candidates [module modules]
   (concat
-     (get-current-module-candidates module)
-     (get-external-candidates module modules)
-     (get-default-candidates modules)))
+    (get-current-module-candidates module)
+    (get-external-candidates module modules)
+    (get-default-candidates-memo (get-core-modules modules))))
 
 
 
@@ -531,26 +611,46 @@
 ;;       m-file "/Users/mrundberget/projects/elm-css/src/Css.elm"
 ;;       ed (first (pool/by-path m-file))]
 ;;   (time
-;;     (doseq [x (repeat 1 "x")]
+;;     (doseq [x (repeat 100 "x")]
 ;;       (time
-;;         (->> (get-hints {:token "S"
-;;                          :pos {:ch 74 :line 9}
+;;         (->> (get-hints {:token "h"
+;;                          :pos {:ch 9 :line 76}
 ;;                          :ed ed}
 ;;                         m-file
 ;;                         p-file)
-;;              count)))))
+;;              count
+;;              println)))))
 
 
-;; (let [ed (first (pool/by-path "/Users/mrundberget/projects/elm-css/src/Css.elm"))]
-;;   (doseq [x (repeat 50 "x")]
-;;     (time (let [p-file "/Users/mrundberget/projects/elm-css"
-;;                 m-file "/Users/mrundberget/projects/elm-css/src/Css.elm"]
-;;             (->> (get-hints {:token "hang"
-;;                              :pos {:ch 39 :line 75}
-;;                              :ed ed}
-;;                             m-file
-;;                             p-file)
-;;                  count)))))
+
+
+
+
+(defn- find-all-occs [line tok]
+  (loop [s line
+         items []
+         curr-idx 0]
+    (let [idx (.search s tok)
+          act-idx (+ curr-idx idx)]
+      (if (= -1 idx)
+        items
+        (recur (subs s (+ idx (count tok) 1))
+               (conj items act-idx)
+               (+ act-idx (count tok) 1))))))
+
+
+;; (let [ed (first (pool/by-path "/users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm"))
+;;       line-count (editor/line-count ed)
+;;       token "Entry.Union"]
+;;   (->> (mapcat
+;;          (fn [l]
+;;            (let [line (editor/line ed l)
+;;                  occ-idx (find-all-occs line token)]
+;;              (map #(hash-map
+;;                      :start {:ch % :line l}
+;;                      :end {:ch (+ % (count token)) :line l}) occ-idx)))
+;;          (range 0 line-count))
+;;        (filter seq)))
 
 
 
@@ -584,7 +684,8 @@
 ;; Get gutter marker info for a given module
 (defn get-gutter-exposeds [module-file project-file]
   (when-let [module (get-module-ast project-file module-file)]
-    (get-exposed-declarations module)))
+    (->> (get-exposed-declarations module)
+         (remove #(= "adtDef" (:type %))))))
 
 
 
@@ -708,7 +809,7 @@
 
       (->> (filter #(not= module-file (:file %)) modules)
            (mapcat get-exposed-declarations)
-           (concat (get-default-candidates modules))
+           (concat (get-default-candidates (get-core-modules modules)))
            (filter (fn [candidate]
                      (and (= token (:value candidate))
                           (not
@@ -727,21 +828,6 @@
                    :alias aliaz
                    :exposing []})))
 
-
-
-
-
-;; (let [p-file "/Users/mrundberget/projects/elm-css"
-;;       m-file "/Users/mrundberget/projects/elm-css/"]
-;;   (->> (get-autoimport-candidates "P" "hyphenate" m-file p-file)
-;;        (println)))
-
-
-
-;; (let [p-file "/Users/mrundberget/projects/package.elm-lang.org"
-;;       m-file "/Users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm"]
-;;   (->> (get-autoimport-candidates "P" "hyphenate" m-file p-file)
-;;        (println)))
 
 
 

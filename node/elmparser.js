@@ -217,7 +217,9 @@ module.exports = (function() {
               return {
               	type: "adtDef",
                 value: name,
-                params: first ? [first].concat(rest) : []
+                params: first ? [first].concat(rest) : [],
+                paramsRaw: first ? name + " : " + text().replace(name, "").trim() : "",
+                location: location()
               }
             },
         peg$c72 = function(ann, val) {

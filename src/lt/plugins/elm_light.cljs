@@ -413,7 +413,8 @@
                                                       (str " (" (:name pck) " " (:version pck) ")")))
                                          :args (or
                                                  (-> target :annotation :signatureRaw)
-                                                 (-> target :signatureRaw))
+                                                 (-> target :signatureRaw)
+                                                 (-> target :paramsRaw))
 
                                          :doc (when-let [doc (:doc target)]
                                                 (.trim doc))
