@@ -22,7 +22,7 @@ http://elm-lang.org/[Elm] language plugin for Light Table
 
 image:https://badges.gitter.im/rundis/elm-light.svg[link="https://gitter.im/rundis/elm-light?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 
-image::elm-light.png
+image:elm-light.png[]
 
 == Installation
 Install using the Light Table plugin manager.
