@@ -1,11 +1,6 @@
 = Elm LightTable plugin
 
 Elm language plugin for Light Table
-v0.4.0, 2016-09-01: published
-:library: Asciidoctor
-:numbered:
-:idprefix:
-:toc: macro
 
 ifdef::env-github[]
 :tip-caption: :bulb:
@@ -49,7 +44,7 @@ on how to use the plugin.
 == Resources
 * http://rundis.github.io/blog/2015/elm_light.html[ScreenCast] - Demo of the features available in the first release of the plugin
 * http://elm-lang.org/[elm-lang.org] - The home of Elm
-* https://github.com/LightTable/LightTable[Light Table] - GithHub home of Light Table
+* https://github.com/LightTable/LightTable[Light Table] - Light Table on GitHub
 
 
 
@@ -60,10 +55,13 @@ Pull requests are most welcome. Please do not include the transpiled files (*_co
 == History
 * 0.4.0 Introduction of AST based features. The plugin now parses your project Elm files (and 3rd party packages too)
 ** Added features
-*** Inline doc now renders the documentation markdown
+*** Find usages
+*** Inline doc now renders the documentation markdown (your own docs included)
 *** You can Jump to definition and back
 *** Autocompleter suggests both for 3rd party imports as well as for you project imports
-*** Initial refactoring support to expose/unexpose declarations for a module
+*** Expose/unexpose declarations for a module
+*** Quick import module
+*** Sort imports
 ** Removed features
 *** Elm test related features have temporarily been removed. They will be rewritten to support the totally rewritten elm-test package
 *** Elm reactor debug command has been removed as elm-reactor doesn't support debugging in 0.17

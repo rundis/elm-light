@@ -140,6 +140,7 @@
 
  ;; find usages
  [:elm.usages :lt.plugins.elm-light.usages/elm.find-usages]
+ [:elm.usages :lt.plugins.elm-light.usages/elm.find-usages.complete]
  [:elm.usages :lt.plugins.elm-light.usages/on-close]
  [:elm.usages :lt.plugins.elm-light.usages/clear!]
 

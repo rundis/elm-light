@@ -1,7 +1,10 @@
 (ns lt.plugins.elm-light.usages
   (:require [lt.plugins.elm-light.elm-ast :as ast]
             [lt.plugins.elm-light.utils :as util]
+            [lt.plugins.elm-light.clients :as elm-client]
+            [lt.objs.clients :as clients]
             [lt.objs.console :as console]
+            [lt.objs.notifos :as notifos]
             [lt.object :as object]
             [lt.objs.tabs :as tabs]
             [lt.objs.editor :as editor]
@@ -24,8 +27,14 @@
    [:ul.res
     ]
    [:div.searcher
-    [:p "Hello"]]])
+    [:p ""]]])
 
+
+(defui loader []
+  [:div.bubblingG
+   [:span {:id "bubblingG_1"}]
+   [:span {:id "bubblingG_2"}]
+   [:span {:id "bubblingG_3"}]])
 
 
 (defn- highlight [line sym]
@@ -65,14 +74,29 @@
   (->> (mapcat :hits mods)
        count))
 
+(defui candidate-link [candidate]
+  [:span.link
+   (str (:value candidate) " (" (:module-name candidate) ")")]
+  :click (fn []
+           (cmd/exec! :open-path (:file candidate))
+           (let [ed (pool/last-active)]
+             (editor/move-cursor ed (-> candidate :location ast/->range :start)))))
+
 (defui searcher
-  [{:keys [usages-per-module candidate]}]
+  [{:keys [usages-per-module candidate token]}]
   [:div.searcher
    [:p (crate/raw
          (str "Found "
               (count-hits usages-per-module)
-              " usages for "
-              "<strong>"(:value candidate)"</strong>"))]])
+              " usages for "))
+    (if candidate
+      (candidate-link candidate)
+      [:span [:strong token]])]
+   [:div.signature
+    (or
+      (-> candidate :annotation :signatureRaw)
+      (-> candidate :signatureRaw)
+      (-> candidate :paramsRaw))]])
 
 (defn show-results [this res]
   (let [container (object/->content this)
@@ -96,20 +120,41 @@
         :else
           (let [ts (tabs/spawn-tabset)]
             (tabs/equalize-tabset-widths)
-            (tabs/add! obj ts)))
-      (tabs/active! obj))))
+            (tabs/add! obj ts))))
+    (tabs/active! obj)))
+
+
+(defn- ast-pass-through [this ed msg]
+  (clients/send
+    (elm-client/get-eval-client ed :editor.elm.ast.passthrough)
+    :editor.elm.ast.passthrough
+    msg
+    :only this))
+
+
+(behavior ::elm.find-usages.complete
+          :triggers #{:elm.find-usages.complete}
+          :reaction (fn [this {:keys [token path project-path]}]
+                      (show-results this
+                                      (ast/find-usages token
+                                                       project-path
+                                                       path))
+                      (notifos/done-working)))
 
 
 (behavior ::elm.find-usages
           :triggers #{:elm.find-usages}
           :reaction (fn [this ed token]
-                      (let [path (-> @ed :info :path)
-                            res (ast/find-usages token
-                                                 (util/project-path path)
-                                                 path)]
+                      (notifos/working (str "Finding usages for " token) )
+                      (let [path (-> @ed :info :path)]
                         (add-or-focus! elm-usages)
                         (object/raise this :clear!)
-                        (show-results this res))))
+                        (ast-pass-through this
+                                          ed
+                                          {:target :elm.find-usages.complete
+                                           :data {:token token
+                                                  :path path
+                                                  :project-path (util/project-path path)}}))))
 
 
 (behavior ::on-close
@@ -120,7 +165,10 @@
 (behavior ::clear!
           :triggers #{:clear!}
           :reaction (fn [this]
-                      (dom/empty (dom/$ :ul.res (object/->content this)))))
+                      (dom/empty (dom/$ :ul.res (object/->content this)))
+                      (dom/empty (dom/$ :div.searcher (object/->content this)))
+                      (dom/append (dom/$ :div.searcher (object/->content this))
+                                  (loader))))
 
 
 (object/object* ::elm-usages

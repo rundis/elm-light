@@ -708,7 +708,8 @@
          (filter #(seq (:hits %)))
          ((fn [mod-usages]
             {:candidate candidate
-             :usages-per-module mod-usages})))))
+             :usages-per-module mod-usages
+             :token token})))))
 
 
 ;; (->> (find-usages "Entry.Union"
