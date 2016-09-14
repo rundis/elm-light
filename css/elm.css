@@ -280,4 +280,8 @@ div.elm-select select {
 }
 
 
+/* Find usages overrides */
+.search-results.elm-usages .line {
+  width: 60px;
+}
 

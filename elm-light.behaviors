@@ -137,6 +137,12 @@
 
  [:editor.elm :lt.plugins.elm-light/elm-sort-imports]
 
+
+ ;; find usages
+ [:elm.usages :lt.plugins.elm-light.usages/elm.find-usages]
+ [:elm.usages :lt.plugins.elm-light.usages/on-close]
+ [:elm.usages :lt.plugins.elm-light.usages/clear!]
+
  ;; ***** Alternate autocompleter *****
 
   [:editor.elm :lt.object/add-tag :editor.keys.normal.elm] ;; Allow overriding tab which defaults to auto-complete command in std autocompleter plugin

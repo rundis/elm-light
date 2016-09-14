@@ -627,30 +627,94 @@
 
 
 (defn- find-all-occs [line tok]
-  (loop [s line
-         items []
-         curr-idx 0]
-    (let [idx (.search s tok)
-          act-idx (+ curr-idx idx)]
-      (if (= -1 idx)
-        items
-        (recur (subs s (+ idx (count tok) 1))
-               (conj items act-idx)
-               (+ act-idx (count tok) 1))))))
+  (let [pattern (re-pattern (str "\\b" tok "\\b(?!\\.)"))]
+    (loop [s line
+           items []
+           curr-idx 0]
+      (let [idx (.search s pattern)
+            act-idx (+ curr-idx idx)]
+        (if (= -1 idx)
+          items
+          (recur (subs s (+ idx (count tok) 1))
+                 (conj items act-idx)
+                 (+ act-idx (count tok) 1)))))))
+
+(defn- get-usage-editor [file]
+  (if-let [ed (first (pool/by-path file))]
+    {:ed ed
+     :close-fn #()}
+    (let [content (->  (files/open-sync file) :content)
+        ed (pool/create {:mime "text/x-elm" :content content})]
+      {:ed ed
+       :close-fn #(object/destroy! ed)})))
 
 
-;; (let [ed (first (pool/by-path "/users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm"))
-;;       line-count (editor/line-count ed)
-;;       token "Entry.Union"]
-;;   (->> (mapcat
-;;          (fn [l]
-;;            (let [line (editor/line ed l)
-;;                  occ-idx (find-all-occs line token)]
-;;              (map #(hash-map
-;;                      :start {:ch % :line l}
-;;                      :end {:ch (+ % (count token)) :line l}) occ-idx)))
-;;          (range 0 line-count))
-;;        (filter seq)))
+(defn- find-usage-hits [candidate-module]
+  (let [{:keys [ed close-fn]} (get-usage-editor (:file candidate-module))
+        line-count (editor/line-count ed)]
+    (->> (mapcat
+           (fn [l]
+             (let [line (editor/line ed l)]
+               (mapcat
+                 (fn [token]
+                   (map #(hash-map
+                           :start {:ch % :line l}
+                           :end {:ch (+ % (count token)) :line l}
+                           :token token
+                           :line line)
+                        (find-all-occs line token)))
+                 (:candidate-tokens candidate-module))))
+           (range 0 line-count))
+         (filter seq)
+         (group-by #(str (-> % :end :line)
+                         "-"
+                         (-> % :end :ch)))
+         (map (fn [[_ v]]
+                (->> (sort-by #(count (:token %)) v)
+                     first)))
+         (sort-by #(-> % :start :line))
+         ((fn [xs]
+            (close-fn)
+            (assoc candidate-module :hits xs))))))
+
+
+(defn find-usages [token project-file module-file]
+  (let [modules (:file-asts (get-project project-file))
+        candidate (get-jump-to-definition token module-file project-file)
+        candidate-module (get-module-ast project-file (:file candidate))
+        cand-mods (->> (get-project project-file)
+                       :file-asts
+                       (remove :package)
+                       (filter (fn [mod]
+                                 (contains?
+                                   (->> mod :ast :imports :imports (map :value) set)
+                                   (:module-name candidate))))
+                       (concat [(when-not (:package candidate-module)
+                                  candidate-module)])
+                       (sort-by #(-> % :ast :moduleDeclaration :value))
+                       )]
+
+
+
+    (->> cand-mods
+         (mapcat (fn [mod]
+                   (->> (get-jump-to-candidates mod modules)
+                        (map #(assoc % :candidate-module-file (:file mod)))
+                        (filter #(and (= (:module-name candidate) (:module-name %))
+                                      (= (:value candidate) (:value %)))))))
+         (map #(hash-map :file (:candidate-module-file %)
+                         :candidate-tokens (:candidate-tokens %)))
+         (map find-usage-hits)
+         (filter #(seq (:hits %)))
+         ((fn [mod-usages]
+            {:candidate candidate
+             :usages-per-module mod-usages})))))
+
+
+;; (->> (find-usages "Entry.Union"
+;;               "/Users/mrundberget/projects/package.elm-lang.org"
+;;               "/Users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm")
+;;      (println))
 
 
 
