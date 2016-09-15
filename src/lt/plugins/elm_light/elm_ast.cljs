@@ -325,52 +325,54 @@
   "Get candidates for Elm default imports as per
   https://github.com/elm-lang/core"
   [modules]
-  (concat
-      (->> (get modules "Basics")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens #{(:value %)}) ))
-      (->> (get modules "Debug")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens #{(str "Debug." (:value %))}) ))
-      (->> (get modules "Maybe")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (if (contains? #{"Just" "Nothing"} (:value %))
-                     #{(:value %) (str "Maybe." (:value %))}
-                     #{(str "Maybe." (:value %))})) ))
-      (->> (get modules "Result")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (if (contains? #{"Ok" "Err"} (:value %) )
-                     #{(:value %) (str "Result." (:value %))}
-                     #{(str "Result." (:value %))})) ))
-      (->> (get modules "Platform")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (if (= (:value %) "Program")
-                     #{"Program"}
-                     #{(str "Platform." (:value %))}))))
-      (->> (get modules "Platfrom.Cmd")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (case (:value %)
-                     "Cmd" #{"Cmd"}
-                     "!" #{"!"}
-                     #{(str "Platform.Cmd." (:value %))
-                       (str "Cmd." (:value %))}))))
-      (->> (get modules "Platform.Sub")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (if (= (:value %) "Sub")
-                     #{"Sub"}
-                     #{(str "Platform.Sub." (:value %))
-                       (str "Sub." (:value %))}))))
-      (->> (get modules "List")
-           (mapcat get-exposed-declarations)
-           (map #(assoc % :candidate-tokens
-                   (if (= "::" (:value %))
-                     #{"::"}
-                     #{(str "List." (:value %))}))))))
+  (->> (concat
+         (->> (get modules "Basics")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens #{(:value %)}) ))
+         (->> (get modules "Debug")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens #{(str "Debug." (:value %))}) ))
+         (->> (get modules "Maybe")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (if (contains? #{"Just" "Nothing"} (:value %))
+                        #{(:value %) (str "Maybe." (:value %))}
+                        #{(str "Maybe." (:value %))})) ))
+         (->> (get modules "Result")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (if (contains? #{"Ok" "Err"} (:value %) )
+                        #{(:value %) (str "Result." (:value %))}
+                        #{(str "Result." (:value %))})) ))
+         (->> (get modules "Platform")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (if (= (:value %) "Program")
+                        #{"Program"}
+                        #{(str "Platform." (:value %))}))))
+         (->> (get modules "Platfrom.Cmd")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (case (:value %)
+                        "Cmd" #{"Cmd"}
+                        "!" #{"!"}
+                        #{(str "Platform.Cmd." (:value %))
+                          (str "Cmd." (:value %))}))))
+         (->> (get modules "Platform.Sub")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (if (= (:value %) "Sub")
+                        #{"Sub"}
+                        #{(str "Platform.Sub." (:value %))
+                          (str "Sub." (:value %))}))))
+         (->> (get modules "List")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens
+                      (if (= "::" (:value %))
+                        #{"::"}
+                        #{(str "List." (:value %))})))))
+      (map #(assoc % :default-candidate? true))))
+
 
 (def get-default-candidates-memo
   (memoize
@@ -522,6 +524,7 @@
       (->>  modules
             (map #(-> % :ast :moduleDeclaration))
             (filter #(and (= 0 (.indexOf (:value %) token))
+                          (not (= (get-module-name mod-header) (:value %)))
                           (not (contains? existing-import-names (:value %)))))
             (map #(hash-map :candidate (:value %) ))
             (sort-by :candidate))
@@ -686,22 +689,24 @@
                        :file-asts
                        (remove :package)
                        (filter (fn [mod]
-                                 (contains?
-                                   (->> mod :ast :imports :imports (map :value) set)
-                                   (:module-name candidate))))
+                                 (or
+                                   (:default-candidate? candidate)
+                                   (contains?
+                                     (->> mod :ast :imports :imports (map :value) set)
+                                     (:module-name candidate)))))
                        (concat [(when-not (:package candidate-module)
                                   candidate-module)])
-                       (sort-by #(-> % :ast :moduleDeclaration :value))
-                       )]
-
-
+                       (filter identity)
+                       (sort-by #(-> % :ast :moduleDeclaration :value)))]
 
     (->> cand-mods
          (mapcat (fn [mod]
                    (->> (get-jump-to-candidates mod modules)
                         (map #(assoc % :candidate-module-file (:file mod)))
-                        (filter #(and (= (:module-name candidate) (:module-name %))
-                                      (= (:value candidate) (:value %)))))))
+                        (filter #(or false
+                                     (and (= (:module-name candidate) (:module-name %))
+                                          (= (:value candidate) (:value %))))))))
+
          (map #(hash-map :file (:candidate-module-file %)
                          :candidate-tokens (:candidate-tokens %)))
          (map find-usage-hits)
@@ -712,10 +717,12 @@
              :token token})))))
 
 
-;; (->> (find-usages "Entry.Union"
-;;               "/Users/mrundberget/projects/package.elm-lang.org"
-;;               "/Users/mrundberget/projects/package.elm-lang.org/src/frontend/Docs/Package.elm")
-;;      (println))
+
+
+;; (->> (find-usages "List.map"
+;;               "/Users/mrundberget/projects/elm-super-simple"
+;;               "/Users/mrundberget/projects/elm-super-simple/src/ModuleA.elm")
+;;      identity)
 
 
 

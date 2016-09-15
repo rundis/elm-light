@@ -704,6 +704,14 @@
                         (object/raise ed :elm.sort.imports)))})
 
 
+(cmd/command {:command :elm.help
+              :desc "Elm: Help !"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (let [b (browser/add)]
+                          (object/raise b :navigate! "https://rundis.gitbooks.io/elm-light-guide/content/"))))})
+
+
 
 
 (cmd/command {:command :elm.select.top.level

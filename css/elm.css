@@ -221,11 +221,21 @@ div.elmrepl .main {
 
 
 /* Elm gutter */
+div.elm-gutter {
+  background-color: inherit;
+  text-align: center;
+
+}
+
 div.elm-gutter-marker {
   color:inherit;
   background-color: inherit;
-  opacity: 0.3;
+  padding-left: 2px;
+  opacity: 0.6;
 }
+
+
+
 
 
 /* Hinter customization */
@@ -250,9 +260,6 @@ div.elm-gutter-marker {
   padding-right: 5px;
   padding-left: 5px;
 }
-
-
-
 
 
 

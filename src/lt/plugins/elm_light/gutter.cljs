@@ -28,7 +28,7 @@
           :desc "Editor Elm: Display elm gutter"
           :reaction (fn [ed]
                       (when-not (:elm-gutter @ed)
-                        (editor/add-gutter ed "elm-gutter" 10)
+                        (editor/add-gutter ed "elm-gutter" 15)
                         (object/assoc-in! ed [:elm-gutter] true))))
 
 (behavior ::elm-gutter-exposeds

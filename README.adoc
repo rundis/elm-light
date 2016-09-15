@@ -1,6 +1,5 @@
 = Elm LightTable plugin
 
-Elm language plugin for Light Table
 
 ifdef::env-github[]
 :tip-caption: :bulb:

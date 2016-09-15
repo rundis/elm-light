@@ -72,7 +72,8 @@
             (notifos/set-msg! (str "Elm stuff for " (:dir @client) " was nuked, all package ASTs are lost. Do a package install or lint to get them back !")
                               {:class "error"}))
 
-          (println type file)))
+          (do
+            (println "Unhandled ast event:" type file))))
 
       (= (second msg) "doc.search.results")
       (object/raise elm :elm.doc.search.results

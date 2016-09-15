@@ -155,11 +155,11 @@
                                                                      (project-path path)
                                                                      path)
                             (do ; don't need to parse module header for this scenario
-                              (->> (time (ast/get-hints {:token (:string token)
+                              (->> (ast/get-hints {:token (:string token)
                                                     :pos pos
                                                     :ed ed}
                                                    path
-                                                   (project-path path)))
+                                                   (project-path path))
                                    (->hints token)
                                    (put! ch))
                               (conj channels ch))
