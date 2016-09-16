@@ -9,6 +9,7 @@
             [lt.objs.proc :as proc]
             [lt.objs.eval :as eval]
             [lt.objs.editor.pool :as pool]
+            [lt.objs.dialogs :as dialogs]
             [lt.objs.sidebar.clients :as scl])
   (:require-macros [lt.macros :refer [behavior]]))
 

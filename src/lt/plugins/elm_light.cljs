@@ -15,7 +15,6 @@
             [lt.objs.console :as console]
             [lt.objs.clients :as clients]
             [lt.objs.popup :as popup]
-            [lt.objs.dialogs :as dialogs]
             [lt.objs.files :as files]
             [lt.objs.browser :as browser]
             [lt.objs.eval :as eval]
