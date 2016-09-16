@@ -47,6 +47,7 @@
 
       (= (second msg) "elm.client.connected")
       (do
+        (notifos/done-working (str "Project connected: " (:dir @client)))
         (object/raise client :connect)
         (object/raise cs/clients :connect client)
         (doseq [ed (pool/containing-path (:dir @client))]
