@@ -52,6 +52,11 @@ on how to use the plugin.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.4.1
+** Fixed manual connect bug
+** Fixed bug with busy animation not stopping after successful connection
+** Auto completions for type alias params in function bodies
+** Jump to and docs for type alias params in function bodies
 * 0.4.0 Introduction of AST based features. The plugin now parses your project Elm files (and 3rd party packages too)
 ** Added features
 *** Find usages
