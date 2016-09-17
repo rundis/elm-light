@@ -376,7 +376,7 @@
                             token (find-symbol ed pos)
                             path (-> @ed :info :path)]
                         (when token
-                          (when-let [target (elm-ast/get-jump-to-definition token path (project-path path))]
+                          (when-let [target (elm-ast/get-jump-to-definition token pos path (project-path path))]
                             (object/raise lt.objs.jump-stack/jump-stack
                                             :jump-stack.push!
                                             ed
@@ -403,6 +403,7 @@
                         (when token
                           (notifos/done-working ""))
                         (when-let [target (elm-ast/get-jump-to-definition token
+                                                                          pos
                                                                           path
                                                                           (project-path path))]
                           (object/raise ed

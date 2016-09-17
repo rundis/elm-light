@@ -370,14 +370,18 @@ module.exports = (function() {
                 return {
                 	type: "typeRecBind",
                     name: id,
-                    tipe: fun
+                    tipe: fun,
+                    location: location(),
+                    signatureRaw: text()
                 };
             },
         peg$c117 = function(id, type) {
               return {
               	type: "typeRecBind",
                 name: id,
-                tipe: type
+                tipe: type,
+                location: location(),
+                signatureRaw: text()
               }
             },
         peg$c118 = function(value, id) {return id},

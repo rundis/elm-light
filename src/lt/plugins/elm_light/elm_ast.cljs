@@ -60,43 +60,6 @@
 (defonce project-asts
   (atom []))
 
-
-
-(defn parse-editor-sync [ed]
-  (try
-    (let [res (.parse elm-parser (editor/->val ed))]
-      {:file (-> @ed :info :path)
-       :ast (util/mod-js->clj res :keywordize-keys true)})
-    (catch :default e
-      (println "Parse editor contents failed" e)
-      nil)))
-
-
-(defn parse-editor-header-sync [ed]
-  (try
-    (let [res (.parse elm-parser (editor/->val ed) #js {:startRule "headerOnly"})]
-       {:file (-> @ed :info :path)
-        :ast (js->clj res :keywordize-keys true)})
-    (catch :default e
-      (println "Parse editor header block failed" e)
-      nil)))
-
-(def parse-editor-async
-  (background
-    (fn [obj-id  parser-path callback-behavior elm-code]
-      (time (let [parser (js/require parser-path)]
-              (try
-                (let [res (parser/parse elm-code)]
-                  (js/_send obj-id
-                            callback-behavior
-                            #js {:status "ok" :module res}))
-                (catch :default e
-                  (js/_send obj-id
-                            callback-behavior
-                            #js {:status "fail" :error e}))))))))
-
-
-
 ;; AST Mutants
 
 (defn upsert-ast! [project file-ast]
@@ -154,6 +117,46 @@
          :file-asts
          (filterv #(= module-name (-> % :ast :moduleDeclaration :value)))
          first)))
+
+
+
+
+(defn parse-editor-sync [ed]
+  (try
+    (let [res (.parse elm-parser (editor/->val ed))]
+      {:file (-> @ed :info :path)
+       :ast (util/mod-js->clj res :keywordize-keys true)})
+    (catch :default e
+      (println "Parse editor contents failed" e)
+      nil)))
+
+
+(defn parse-editor-header-sync [ed]
+  (try
+    (let [res (.parse elm-parser (editor/->val ed) #js {:startRule "headerOnly"})]
+       {:file (-> @ed :info :path)
+        :ast (js->clj res :keywordize-keys true)})
+    (catch :default e
+      (println "Parse editor header block failed" e)
+      nil)))
+
+(def parse-editor-async
+  (background
+    (fn [obj-id  parser-path callback-behavior elm-code]
+      (time (let [parser (js/require parser-path)]
+              (try
+                (let [res (parser/parse elm-code)]
+                  (js/_send obj-id
+                            callback-behavior
+                            #js {:status "ok" :module res}))
+                (catch :default e
+                  (js/_send obj-id
+                            callback-behavior
+                            #js {:status "fail" :error e}))))))))
+
+
+
+
 
 
 
@@ -226,7 +229,8 @@
                            :package package)))))
 
 
-(defn enrich-module-declarations [module]
+(defn enrich-module-declarations
+  [module]
   (let [exposing (-> module :ast :moduleDeclaration :exposing)
         expAll? (exposeAll? exposing)
         exports (-> (extract-exports exposing) set)
@@ -291,15 +295,24 @@
         (disj nil))))
 
 
+(defn get-external-exposed-modules
+  [curr-module-name
+   imported-mod-names
+   modules]
+  (->> modules
+       (filter #(and (not= curr-module-name (get-module-name %))
+                     (contains? imported-mod-names (get-module-name %))))
+       (mapcat #(get-exposed-declarations-memo %))
+       (group-by :module-name)))
+
+
+
 (defn get-external-candidates [module modules]
   (let [imports (-> module :ast :imports :imports)
         imported-mod-names (->> imports (map :value) set)
-        curr-module-name (get-module-name module)
-        external-exposed (->> modules
-                              (filter #(and (not= curr-module-name (get-module-name %))
-                                            (contains? imported-mod-names (get-module-name %))))
-                              (mapcat #(get-exposed-declarations-memo %))
-                              (group-by :module-name))]
+        external-exposed (get-external-exposed-modules (get-module-name module)
+                                                       imported-mod-names
+                                                       modules)]
     (->> imports
          (mapcat
            (fn [imp]
@@ -387,19 +400,11 @@
 
 
 
-
-
-
-
 (defn get-jump-to-candidates [module modules]
   (concat
     (get-current-module-candidates module)
     (get-external-candidates module modules)
-    (get-default-candidates-memo (get-core-modules modules))))
-
-
-
-
+    (vec (get-default-candidates-memo (get-core-modules modules)))))
 
 
 
@@ -407,6 +412,64 @@
   (->> (get-jump-to-candidates module modules)
        (filter #(contains? (:candidate-tokens % ) token))
        first))
+
+
+
+(defn- get-candidate-by-token-loc-aware [token pos module modules]
+  (let [jump-to-candidates (get-jump-to-candidates module modules)
+        decl (find-top-level-declaration-by-pos pos module)]
+    (if (and (= "nameDef" (:type decl))
+             (-> decl :annotation :signature))
+      (->> (mapcat (fn [param {:keys [candidate] :as ann}]
+                 (cond
+                   (and (= "variable" (:type param))
+                        (= "typeAliasDecl" (:type candidate)))
+                   (concat [{:value (:value candidate)
+                             :candidate (:value param)
+                             :location (:location candidate)
+                             :package (:package candidate)
+                             :file (:file candidate)
+                             :doc (:doc candidate)
+                             :module-name (:module-name candidate)}]
+                           (map #(hash-map
+                                   :value (str (:value candidate) "." (:name %))
+                                   :candidate (str (:value param) "." (:name %))
+                                   :package (:package candidate)
+                                   :location (:location %)
+                                   :signatureRaw (:signatureRaw %)
+                                   :file (:file candidate)
+                                   :module-name (:module-name candidate))
+                                (-> candidate :tipe :fieldDefs)))
+
+                   :else []))
+               (:patterns decl)
+               (-> decl
+                   (enrich-top-level-declaration jump-to-candidates)
+                   :annotation
+                   :signature))
+           (filter #(= token (:candidate %)))
+           first
+           ((fn [x]
+              (or x
+                  (get-candidate-by-token token module modules)))))
+
+      ;; fallback to default
+      (get-candidate-by-token token module modules))))
+
+
+;; (let [p-file "/Users/mrundberget/projects/elm-super-simple"
+;;       m-file "/Users/mrundberget/projects/elm-super-simple/src/ModuleA.elm"
+;;       modules (:file-asts (get-project p-file))
+;;       module (get-module-ast p-file m-file)
+;;       pos {:ch 5 :line 16}
+;;       token "B.Person"]
+
+
+
+;;   (get-candidate-by-token-loc-aware token pos module modules))
+
+
+
 
 
 
@@ -463,15 +526,33 @@
      (get-module-ast project-dir module-file))))
 
 
+(defn enrich-top-level-declaration
+  "For annotated definitions it tries to add extended information
+  about types for each parameter (ie union types and type aliases)"
+  [decl jump-to-candidates]
+  (let [get-cand (fn [token]
+                   (->> jump-to-candidates
+                        (filter #(contains? (:candidate-tokens % ) token))
+                        first))]
+    (update-in decl [:annotation :signature]
+               (fn [items]
+                 (map (fn [item]
+                        (if (= "typeAdt" (:type item))
+                          (assoc item :candidate
+                            (get-cand (:value item)))
+                          item))
+                      items)))))
+
+
 
 ;; FEATURES
 
 
 ;; JUMP TO DEFINITION
 
-(defn get-jump-to-definition [token module-file project-file]
+(defn get-jump-to-definition [token pos module-file project-file]
   (when-let [module (get-module-ast project-file module-file)]
-    (get-candidate-by-token token module (:file-asts (get-project project-file)))))
+    (get-candidate-by-token-loc-aware token pos module (:file-asts (get-project project-file)))))
 
 
 
@@ -498,19 +579,55 @@
 
 
 
+(defn- declaration-param-hint-items
+  [pos module jump-to-candidates]
+  (let [decl (find-top-level-declaration-by-pos pos module)]
+
+    (if (and (= "nameDef" (:type decl))
+             (-> decl :annotation :signature))
+      (mapcat (fn [param {:keys [candidate] :as ann}]
+                (cond
+                  (and (= "variable" (:type param))
+                       (= "typeAliasDecl" (:type candidate)))
+                  (->> (map #(hash-map
+                               :candidate (str (:value param) "." (:name %))
+                               :module-name (when-not (= (get-module-name module)
+                                                         (:module-name candidate))
+                                              (str "(" (:value candidate) ") "
+                                                   (:module-name candidate))))
+                            (-> candidate :tipe :fieldDefs))
+                       (cons {:candidate (:value param)
+                              :module-name (when-not (= (get-module-name module)
+                                                        (:module-name candidate))
+                                             (str "(" (:value candidate) ") "
+                                                  (:module-name candidate) ))}))
+
+                  :else []))
+              (:patterns decl)
+              (-> decl
+                  (enrich-top-level-declaration jump-to-candidates)
+                  :annotation
+                  :signature))
+      [])))
+
+
+
+
 (defn- declarations-hints
-  [{:keys [token]} module modules]
-  (->> (get-jump-to-candidates module modules)
-       (filter (fn [decl]
-                 (some #(= 0 (.indexOf % token))
-                       (:candidate-tokens decl))))
-       (mapcat (partial to-hint (get-module-name module) ))
-       (filter #(= 0 (.indexOf (:candidate %) token)))
-       (sort (fn [a b]
-               (let [mod-sort (compare-dots (:candidate a) (:candidate b))]
-                 (if (= 0 mod-sort)
-                   (.localeCompare (:candidate a) (:candidate b))
-                   mod-sort))))))
+  [{:keys [token pos]} module modules]
+  (let [jump-to-candidates (get-jump-to-candidates module modules)]
+    (->> jump-to-candidates
+         (filter (fn [decl]
+                   (some #(= 0 (.indexOf % token))
+                         (:candidate-tokens decl))))
+         (mapcat (partial to-hint (get-module-name module)))
+         (concat (declaration-param-hint-items pos module jump-to-candidates))
+         (filter #(= 0 (.indexOf (:candidate %) token)))
+         (sort (fn [a b]
+                 (let [mod-sort (compare-dots (:candidate a) (:candidate b))]
+                   (if (= 0 mod-sort)
+                     (.localeCompare (:candidate a) (:candidate b))
+                     mod-sort)))))))
 
 
 (defn- import-hints
@@ -587,7 +704,7 @@
 
    (let [ed-tok (editor/->token ed pos)
          module (get-module-ast project-dir module-file)
-         ;top-level-decl? (find-top-level-declaration-by-pos pos module)
+         top-level-decl? (find-top-level-declaration-by-pos pos module)
          mod-header (or module-header module) ;; to cater for invalid ast
          modules (-> (get-project project-dir) :file-asts)
          imp (find-import-by-pos {:line (:line pos)
@@ -616,8 +733,8 @@
 ;;   (time
 ;;     (doseq [x (repeat 100 "x")]
 ;;       (time
-;;         (->> (get-hints {:token "h"
-;;                          :pos {:ch 9 :line 76}
+;;         (->> (get-hints {:token "minMax."
+;;                          :pos {:ch 11 :line 222}
 ;;                          :ed ed}
 ;;                         m-file
 ;;                         p-file)
@@ -683,7 +800,7 @@
 
 (defn find-usages [token project-file module-file]
   (let [modules (:file-asts (get-project project-file))
-        candidate (get-jump-to-definition token module-file project-file)
+        candidate (get-jump-to-definition token {} module-file project-file)
         candidate-module (get-module-ast project-file (:file candidate))
         cand-mods (->> (get-project project-file)
                        :file-asts
@@ -715,6 +832,12 @@
             {:candidate candidate
              :usages-per-module mod-usages
              :token token})))))
+
+
+
+
+
+
 
 
 
