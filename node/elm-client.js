@@ -206,17 +206,21 @@ function startWatcher() {
   */
 
   watcher.on("raw", function(event, file, details) {
-    var relFile = file ? path.relative(process.cwd(), file) : "";
+    var relFile = file ? path.relative(process.cwd(), file) : null;
     var sourceDirs = getSourceDirs(process.cwd());
 
-    //console.log("Watcher Event: " + event + " file: " + relFile);
+
+    // chokidar or whatever it's using underneath seems to get this wrong.
+    if (file && event === "modified" && !fileExists(file)) {
+      return;  // phony change event when
+    }
 
 
     if(relFile === "elm-stuff/exact-dependencies.json") {
       if ( event === "modified") {
         parseAllPackageSources();
       }
-      if (event === "deleted") {
+      if (event === "deleted" && !fileExists(file)) {
         sendAstMsg({
           type: "packagesDeleted"
         });
