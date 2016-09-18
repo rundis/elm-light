@@ -206,7 +206,7 @@ function startWatcher() {
   */
 
   watcher.on("raw", function(event, file, details) {
-    var relFile = path.relative(process.cwd(), file);
+    var relFile = file ? path.relative(process.cwd(), file) : "";
     var sourceDirs = getSourceDirs(process.cwd());
 
     //console.log("Watcher Event: " + event + " file: " + relFile);
@@ -224,18 +224,18 @@ function startWatcher() {
     }
 
 
-    if (isSourceFile(sourceDirs, file) && event === "modified") {
+    if (file && isSourceFile(sourceDirs, file) && event === "modified") {
       parseAndSend(file);
     }
 
-    if (isSourceFile(sourceDirs, file) && event === "deleted") {
+    if (file && isSourceFile(sourceDirs, file) && event === "deleted") {
       sendAstMsg({
         file: file,
         type: "deleted"
       });
     }
 
-    if (isSourceFile(sourceDirs, file)
+    if (file && isSourceFile(sourceDirs, file)
         && event === "moved") {
       if(fileExists(file)) {
         parseAndSend(file);
