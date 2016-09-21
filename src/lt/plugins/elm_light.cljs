@@ -503,19 +503,20 @@
                             module (elm-ast/get-module-ast prj-path path)
                             exposing (-> module :ast :moduleDeclaration :exposing)]
 
-                        (when-let [decl (elm-ast/find-top-level-declaration-by-pos
+                        (when exposing
+                          (when-let [decl (elm-ast/find-top-level-declaration-by-pos
                                             (editor/->cursor ed)
                                             module)]
-                          (when-not (elm-ast/exposed-by-module? module (:value decl))
-                            (let [{:keys [start end]} (elm-ast/->range (:location exposing))
-                                  upd-exp (elm-ast/expose-decl decl exposing)
-                                  pos (editor/->cursor ed)
-                                  bm (editor/bookmark ed pos)]
-                              (editor/replace ed
-                                              start
-                                              end
-                                              (elm-ast/print-exposing upd-exp))
-                              (safe-move-cursor ed bm pos)))))))
+                            (when-not (elm-ast/exposed-by-module? module (:value decl))
+                              (let [{:keys [start end]} (elm-ast/->range (:location exposing))
+                                    upd-exp (elm-ast/expose-decl decl exposing)
+                                    pos (editor/->cursor ed)
+                                    bm (editor/bookmark ed pos)]
+                                (editor/replace ed
+                                                start
+                                                end
+                                                (elm-ast/print-exposing upd-exp))
+                                (safe-move-cursor ed bm pos))))))))
 
 
 (behavior ::elm-unexpose-top-level
@@ -527,20 +528,21 @@
                             module (elm-ast/get-module-ast prj-path path)
                             exposing (-> module :ast :moduleDeclaration :exposing)]
 
-                        (when-let [decl (elm-ast/find-top-level-declaration-by-pos
-                                          (editor/->cursor ed)
-                                          module)]
-                          (when (and (elm-ast/exposed-by-module? module (:value decl))
-                                     (not (elm-ast/exposeAll? exposing)))
-                            (let [{:keys [start end]} (elm-ast/->range (:location exposing))
-                                  upd-exp (elm-ast/unexpose-decl decl exposing)
-                                  pos (editor/->cursor ed)
-                                  bm (editor/bookmark ed pos)]
-                              (editor/replace ed
-                                              start
-                                              end
-                                              (elm-ast/print-exposing upd-exp))
-                              (safe-move-cursor ed bm pos)))))))
+                        (when exposing
+                          (when-let [decl (elm-ast/find-top-level-declaration-by-pos
+                                            (editor/->cursor ed)
+                                            module)]
+                            (when (and (elm-ast/exposed-by-module? module (:value decl))
+                                       (not (elm-ast/exposeAll? exposing)))
+                              (let [{:keys [start end]} (elm-ast/->range (:location exposing))
+                                    upd-exp (elm-ast/unexpose-decl decl exposing)
+                                    pos (editor/->cursor ed)
+                                    bm (editor/bookmark ed pos)]
+                                (editor/replace ed
+                                                start
+                                                end
+                                                (elm-ast/print-exposing upd-exp))
+                                (safe-move-cursor ed bm pos))))))))
 
 
 (behavior ::elm-sort-imports
