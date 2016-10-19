@@ -172,6 +172,9 @@ function startMessageListener() {
         case "docs.elm.search":
           handleDocsSearch(cb, data);
           break;
+        case "elm.test":
+          handleTest(cb, data);
+          break;
 
 
       }
@@ -650,6 +653,44 @@ function handleGendoc(clientId, msg) {
 function handleDocsSearch(clientId, msg) {
   // workaround, just pass the msg back, will perform search client side
   send([clientId, "doc.search.results", msg])
+}
+
+
+
+function handleTest(clientId, msg) {
+  var elmTest =  cp.fork("/Users/mrundberget/projects/node-test-runner/bin/elm-test",
+                         [msg.file, "--report=json"],
+                         {cwd: process.cwd(), silent: true});
+
+
+  elmTest.stdout.on("data", function(out) {
+    //console.log("Test out: " + out);
+    try {
+      var rawMessages = out.toString().split("\n").filter(function(s) { return s.indexOf("{\"event") === 0;});
+      rawMessages.forEach (function (rawMessage) {
+        var testMsg = JSON.parse(rawMessage);
+        send([clientId, "elm.test.result", testMsg])
+      });
+    } catch (e) {
+      console.error("Error parsing: " + out);
+      console.error(e);
+    }
+  });
+
+  elmTest.stderr.on("data", function(err) {
+    console.error("Error stuff: " + err)
+  });
+
+  elmTest.on("error", function(err) {
+    console.log("Elm test error event: ");
+    console.log(err);
+  });
+
+  elmTest.on("exit", function(exitCode) {
+    console.log("Exit test process with exitCode: " + exitCode);
+  });
+
+
 }
 
 

@@ -8,7 +8,6 @@
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
             [lt.util.dom :as dom]
-            [lt.util.load :as load]
             [fetch.core :as fetch]
             [clojure.set :refer [rename-keys]]
             [clojure.string :as s])

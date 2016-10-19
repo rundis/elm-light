@@ -130,6 +130,7 @@
                                                 :ed ed}
                                                path
                                                (project-path path))]
+
                         (if (= "ok" status)
                           (->> (get-hints {:ast module
                                            :file path})

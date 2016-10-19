@@ -3,15 +3,35 @@ div.graph {
   height: 100%;
 
 }
-div.dependency-graph {
 
+.graph .filters {
+  border-bottom: 1px solid;
+  padding-bottom: 10px;
+  margin: 10px;
 }
+
+
+.graph select {
+  vertical-align: top;
+  font-size: inherit;
+  font-family: inherit;
+  color: white;
+  background: #3b3f41;
+  border: 1px solid #3b3f41;
+  padding: 2px;
+  max-height: 20em;
+}
+
+.graph .filters .filter + .filter {
+  margin-left: 10px;
+}
+
 
 .dependency-graph svg {
     background-color: inherit;
 }
 
-.dependency-graph .node rect, .dependency-graph .node ellipse {
+.dependency-graph .node rect, .dependency-graph .node ellipse, .module-graph .node rect {
     stroke: white;
     stroke-width: 1.5px;
     fill: #ccc;
@@ -25,7 +45,7 @@ div.dependency-graph {
     fill: #ccc;
 }
 
-.dependency-graph .edgePath {
+.dependency-graph .edgePath, .module-graph .edgePath {
     stroke: white;
     stroke-width: 1.5px;
     fill: none;
@@ -35,6 +55,17 @@ div.graph-label {
   padding: 3px;
   text-align:center;
   color: black;
+}
+
+
+div.graph-label ul {
+  border-top: 1px solid;
+  text-align:left;
+}
+
+
+.module-graph .node rect:has (> graph-label.highlight) {
+  background-color: yellow;
 }
 
 div.graph-label.error {
@@ -50,3 +81,5 @@ div.graph-label.clickable {
   text-decoration: underline;
   cursor: hand;
 }
+
+

@@ -100,14 +100,14 @@
 ;; AST Queries
 (defn get-project [project]
   (->> @project-asts
-       (filterv #(= project (:project %)))
+       (filter #(= project (:project %)))
        first))
 
 (defn get-module-ast [project module-file]
   (when-let [prj (get-project project)]
     (->> prj
          :file-asts
-         (filterv #(= module-file (:file %)))
+         (filter #(= module-file (:file %)))
          first)))
 
 
@@ -115,7 +115,7 @@
   (when-let [prj (get-project project)]
     (->> prj
          :file-asts
-         (filterv #(= module-name (-> % :ast :moduleDeclaration :value)))
+         (filter #(= module-name (-> % :ast :moduleDeclaration :value)))
          first)))
 
 
@@ -276,6 +276,7 @@
    imp-exported-names
    imp-exports-all?
    exposed-declaration]
+
 
   (let [decl-name (:value exposed-declaration)
         type-exposing (when (= "adtDef" (:type exposed-declaration))
@@ -640,6 +641,7 @@
            (not (seq (-> imp :exposing :exports))))
       (->>  modules
             (map #(-> % :ast :moduleDeclaration))
+            (filter identity)
             (filter #(and (= 0 (.indexOf (:value %) token))
                           (not (= (get-module-name mod-header) (:value %)))
                           (not (contains? existing-import-names (:value %)))))
@@ -649,8 +651,8 @@
       ;; Return completions for exposing for given import
       (and (seq (-> imp :exposing :exports))
            (or (in-range? pos (-> imp :exposing :exports))
-;;                (in-range? (update-in pos [:ch] #(- % (count token)))
-;;                           (-> imp :exposing :exports))
+               ;;                (in-range? (update-in pos [:ch] #(- % (count token)))
+               ;;                           (-> imp :exposing :exports))
                ))
       (->> (filter #(= (:value imp) (-> % :ast :moduleDeclaration :value)) modules)
            first
@@ -673,6 +675,9 @@
         exports-container (:exports exposing)
         curr-exports (-> (extract-exports exposing) set)
         decls (-> module :ast :declarations)]
+
+
+
     (cond
       (in-range? pos exports-container)
       (->> (map :value decls)
@@ -709,6 +714,8 @@
          modules (-> (get-project project-dir) :file-asts)
          imp (find-import-by-pos {:line (:line pos)
                                   :ch 0} mod-header)]
+
+
 
      (when module
        (cond

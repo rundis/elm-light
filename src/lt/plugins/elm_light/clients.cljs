@@ -134,7 +134,8 @@
                                                       :docs.elm.search
                                                       :editor.elm.doc
                                                       :elm.repl.restart
-                                                      :editor.elm.gendoc}})
+                                                      :editor.elm.gendoc
+                                                      :elm.test}})
                           (object/add-behavior! client ::send!)))))
 
 

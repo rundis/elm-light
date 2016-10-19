@@ -144,6 +144,21 @@
  [:elm.usages :lt.plugins.elm-light.usages/on-close]
  [:elm.usages :lt.plugins.elm-light.usages/clear!]
 
+
+ ;; Module graph
+ [:elm.graph.module :lt.plugins.elm-light.module-graph/on-render]
+ [:elm.graph.module :lt.plugins.elm-light.module-graph/on-show-modules]
+ [:elm.graph.module :lt.plugins.elm-light.module-graph/on-close-destroy]
+ [:elm.graph.module :lt.plugins.elm-light.module-graph/on-move]
+ [:tabset :lt.plugins.elm-light.module-graph/on-tab-resized]
+
+
+ ;; Elm test
+ [:editor.elm :lt.plugins.elm-light.test/elm-test]
+ [:elm.test.dashboard :lt.plugins.elm-light.test/on-testrun-init]
+ [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-result]
+ [:elm.test.dashboard :lt.plugins.elm-light.test/on-close-destroy]
+
  ;; ***** Alternate autocompleter *****
 
   [:editor.elm :lt.object/add-tag :editor.keys.normal.elm] ;; Allow overriding tab which defaults to auto-complete command in std autocompleter plugin

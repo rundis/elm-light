@@ -1,0 +1,91 @@
+.elmtest-dashboard {
+  padding: 10px;
+}
+
+
+.elmtest-dashboard h2 {
+  font-size: 125%;
+}
+
+.elmtest-dashboard .curr-test {
+  margin-top: 5px;
+}
+
+.elmtest-dashboard .result-container {
+  margin-top: 15px;
+}
+
+.elmtest-dashboard .test-failures {
+  margin-top: 10px;
+}
+
+
+
+.elmtest-dashboard .test-failures > ul {
+  border: 1px solid darkgray;
+  overflow: scroll;
+  height: 600px;
+  padding: 8px;
+}
+
+.elmtest-dashboard .test-failures > ul > li {
+  padding-bottom: 10px;
+  padding-top: 10px;
+}
+
+.elmtest-dashboard .test-failures > ul > li:nth-child(even) {
+  background: #060708;
+}
+
+.elmtest-dashboard .test-failures > ul > li > ul li ul {
+  margin-left : 10px;
+  margin-top: 5px;
+}
+
+
+
+.elmtest-dashboard .test-failures > ul > li pre {
+  margin-left: 20px;
+  opacity: 0.9;
+}
+
+.elmtest-dashboard .test-failures .given {
+  margin-left: 10px;
+}
+
+
+
+
+
+
+.elmtest-dashboard .summary-item {
+  display: inline-block;
+  width: 150px;
+}
+
+.elmtest-dashboard .summary-item span {padding-left: 5px;}
+
+
+.elmtest-dashboard
+.test-progress progress, .test-progress progress[role]
+{
+  -webkit-appearance: none;
+}
+
+
+.test-progress progress {
+  width: 100%;
+}
+
+/* Polyfill */
+.test-progress progress[role]:after {
+  background-image: none;
+}
+
+.test-progress progress.ok::-webkit-progress-value {
+  background: green;
+}
+
+.test-progress progress.error::-webkit-progress-value {
+  background: red;
+}
