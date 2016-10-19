@@ -1033,6 +1033,21 @@
 
 
 
+;;**********************************************************
+;; Elm Test related
+;;**********************************************************
+
+(defn get-project-tests [project-path]
+  (let [project (get-project project-path)]
+    (->> (:file-asts project)
+         (filter (fn [module]
+                   (when-not (:package module)
+                     (let [imp-names (->> module :ast :imports :imports (map :value) set)]
+                       (contains? imp-names "Test")))))
+         (mapcat (fn [module]
+                   (let [decls (->> (get-exposed-declarations-memo module)
+                                    (filter #(= "Test" (-> (:annotation %) :signature first :value))))]
+                     (map #(select-keys % [:value :module-name]) decls)))))))
 
 
 

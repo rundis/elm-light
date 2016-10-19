@@ -7,7 +7,9 @@ var wrench = require("wrench");
 var os = require("os");
 var chokidar = require("chokidar")
 var walker = require('fs-walk');
-var elmParser = require("./elmparser")
+var temp = require("temp").track();
+var elmParser = require("./elmparser");
+
 
 
 process.setMaxListeners(100);
@@ -174,6 +176,9 @@ function startMessageListener() {
           break;
         case "elm.test":
           handleTest(cb, data);
+          break;
+        case "elm.test.suite":
+          handleTestSuite(cb, data);
           break;
 
 
@@ -689,9 +694,67 @@ function handleTest(clientId, msg) {
   elmTest.on("exit", function(exitCode) {
     console.log("Exit test process with exitCode: " + exitCode);
   });
+}
 
+
+function handleTestSuite(clientId, msg) {
+  var suiteFile = path.join(process.cwd(), "elm-temp-suite-000.elm");
+  var testModuleName = msg.module;
+  var suite = msg.suite;
+  var seed = msg.seed ? msg.seed : null;
+
+  var evalElmCode = function (compiledCode, finishedCb) {
+    var Elm = function(module) { eval(compiledCode); return module.exports; }({});
+    // TODO: hnndle case if Elm is undefined
+
+    var testModule = Elm[testModuleName];
+
+    // Apply Node polyfills as necessary.
+    var window = {Date: Date, addEventListener: function() {}, removeEventListener: function() {}};
+    var document = {body: {}, createTextNode: function() {}};
+    if (typeof XMLHttpRequest === 'undefined') { XMLHttpRequest = function() { return { addEventListener: function() {}, open: function() {}, send: function() {} }; }; }
+    if (typeof FormData === 'undefined') { FormData = function () { this._data = []; }; FormData.prototype.append = function () { this._data.push(Array.prototype.slice.call(arguments)); }; }
+
+
+    var app = testModule.worker({seed: seed, report: "json"});
+    app.ports.emit.subscribe(function(msg) {
+      var msgType = msg[0];
+      var data = msg[1];
+
+      send([clientId, "elm.test.result", data.message]);
+
+      if(msgType === "FINISHED") {
+        finishedCb()
+      }
+    });
+  };
+
+  var cleanUp = function() {
+    fs.unlink(suiteFile, function(err) {
+      if (err) {
+        console.error("Error deleting temp test suite file: " + err);
+      }
+    });
+  };
+
+
+  fs.writeFileSync(suiteFile, suite, {encoding: "utf8"}); // TODO: Error handling
+  temp.open({prefix: 'elm_test_', suffix: '.js'}, function (err, info) {
+    var res = cp.spawnSync("elm-make",
+               [suiteFile, "--yes", "--output=" + info.path],
+               {cwd: process.cwd()});
+
+    var err = res.output[2] + "";
+    if(err.length > 0) {
+      console.error("Error from elm-make: " + err);
+    } else {
+      evalElmCode(fs.readFileSync(info.path, {encoding: "utf8"}), cleanUp);
+    }
+
+  });
 
 }
+
 
 
 /* Kill any externaly spawned children
@@ -737,7 +800,9 @@ function handleClose() {
 }
 
 
-
+process.on('uncaughtException', function(err) {
+  console.error("Unhandled error in elm-light project node process: " + err);
+});
 
 
 

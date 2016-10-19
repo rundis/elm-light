@@ -155,6 +155,8 @@
 
  ;; Elm test
  [:editor.elm :lt.plugins.elm-light.test/elm-test]
+ [:editor.elm :lt.plugins.elm-light.test/elm-test-suite.init]
+ [:editor.elm :lt.plugins.elm-light.test/elm-test-suite]
  [:elm.test.dashboard :lt.plugins.elm-light.test/on-testrun-init]
  [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-result]
  [:elm.test.dashboard :lt.plugins.elm-light.test/on-close-destroy]

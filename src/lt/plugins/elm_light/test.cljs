@@ -1,6 +1,7 @@
 (ns lt.plugins.elm-light.test
   (:require [lt.plugins.elm-light.utils :as util]
             [lt.plugins.elm-light.clients :as elm-clients]
+            [lt.plugins.elm-light.elm-ast :as elm-ast]
             [lt.objs.console :as console]
             [lt.objs.notifos :as notifos]
             [lt.object :as object]
@@ -284,43 +285,30 @@
 
 
 
-;(-> (zip/vector-zip ["jalla"])
-;    (zip/append-child {:a "b"}))
 
 
+(defn create-suite
+  "Create a test suite on the fly for running elm tests"
+  [project-tests]
+  (let [imports (->> (map :module-name project-tests)
+                     set
+                     (s/join "\nimport ")
+                     (str "import "))
+        tests (->> (map #(str (:module-name %) "." (:value %)) project-tests)
+                   (s/join ","))]
 
+  (str
+"port module ElmTempTestSuite exposing (..)
 
+import Test.Runner.Node exposing (run)
+import Json.Encode exposing (Value)
+import Test"
+"\n" imports "\n"
+"main : Program Value
+main =
+    run emit <| Test.concat [" tests "]
 
-
-;; (let [samples [{:event "testCompleted", :status "fail", :labels ["A Test Suite" "Addition"], :failures [{:given "", :actual "11\n╷\n│ Expect.equal\n╵\n10"}], :duration "2"} {:event "testCompleted", :status "fail", :labels ["A Test Suite" "Records for fun"], :failures [{:given "", :actual "{ a = 100, b = \"nisser\" }\n╷\n│ Expect.equal\n╵\n{ a = 100, b = \"nisse\" }"}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["A Test Suite" "This test should fail"], :failures [{:given "", :actual "failed as expected!"}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["2A Test Suite2" "2Addition"], :failures [{:given "", :actual "11\n╷\n│ Expect.equal\n╵\n10"}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["2A Test Suite2" "2Records for fun"], :failures [{:given "", :actual "{ a = 100, b = \"nisser\" }\n╷\n│ Expect.equal\n╵\n{ a = 100, b = \"nisse\" }"}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["2A Test Suite2" "2This test should fail"], :failures [{:given "", :actual "failed as expected!"}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["withoutNums" "adding numbers to strings has no effect"], :failures [{:given "(\"\",-0.00010069107482582601,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010281026383131636,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010302365492054335,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010544381255027784,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010631872573614866,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010680264141583448,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010742951209576898,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00010744484535876405,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011034382406065299,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011073268616291517,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001135777691504627,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011467892869848228,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011783035026507332,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011892733110712729,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011909057933935218,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00011948091448926055,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00012124571279337898,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00012158061123095903,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001245215441615613,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00012709841478017057,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001277826655083278,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00012844681627587762,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00013014254939250455,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001426779657852492,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00014911461626094556,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00015170887208261594,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00015177959565606527,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00015477138429860655,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001556775625432495,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00015650689044490896,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00015952396914682785,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00016366394107489388,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00016374145821814942,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00016683602491157192,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00016704403548569005,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001700945849790553,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001713434323041735,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00017169513729281186,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00017350257333482487,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001759373445443396,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001763515166722096,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00017684755098926135,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00017924107702587593,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00018451504033079828,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00018573530045368583,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001879141649210729,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.0001886984109916376,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""} {:given "(\"\",-0.00019414844176476962,\"\")", :actual "\"-\"\n╷\n│ Expect.equal\n╵\n\"\""}], :duration "1761"} {:event "testCompleted", :status "fail", :labels ["oxfordify" "given an empty sentence" "returns an empty string"], :failures [{:given "", :actual "\"Alice, Bob, and Claire\"\n╷\n│ Expect.equal\n╵\n\"\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["oxfordify" "given a sentence with one item" "still contains one item"], :failures [{:given "", :actual "\"Alice, Bob, and Claire\"\n╷\n│ Expect.equal\n╵\n\"This sentence contains one item.\""}], :duration "1"} {:event "testCompleted", :status "fail", :labels ["oxfordify" "given a sentence with multiple items" "returns an oxford-style sentence"], :failures [{:given "", :actual "\"Alice, Bob, and Claire\"\n╷\n│ Expect.equal\n╵\n\"This sentence contains one item and two item.\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["oxfordify" "given a sentence with multiple items" "returns an oxford-style sentence"], :failures [{:given "", :actual "\"Alice, Bob, and Claire\"\n╷\n│ Expect.equal\n╵\n\"This sentence contains one item, two item, and three item.\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels [""], :failures [{:given "", :actual "\"Whatsoever!\"\n╷\n│ Expect.equal\n╵\n\"No description\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["basic expectations" "this should succeed"], :failures [{:given "", :actual "\"blah\"\n╷\n│ Expect.equal\n╵\n\" blah\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["basic expectations" "this should fail"], :failures [{:given "", :actual "\"something\"\n╷\n│ Expect.equal\n╵\n\"someting else\""}], :duration "0"} {:event "testCompleted", :status "fail", :labels ["basic expectations" "another failure"], :failures [{:given "", :actual "\"forty-two\"\n╷\n│ Expect.equal\n╵\n\"forty-three\""}], :duration "1"} {:event "testCompleted", :status "fail", :labels ["the first element in this fuzz tuple" "is always \"foo\""], :failures [{:given "(\"\",\"\")", :actual "\"\"\n╷\n│ Expect.equal\n╵\n\"foo\""}], :duration "202"} {:event "testCompleted", :status "fail", :labels ["fuzzing" "empty list etc"], :failures [{:given "(\"\",\"\")", :actual "given an empty list, did not return an empty string"}], :duration "206"} {:event "testCompleted", :status "fail", :labels ["fuzzing" "further testing"], :failures [{:given "(\"\",\"\")", :actual "\"Alice, Bob, and Claire\"\n╷\n│ Expect.equal\n╵\n\"This sentence contains one item.\""}], :duration "141"} {:event "testCompleted", :status "fail", :labels ["fuzzing" "custom onFail here"], :failures [{:given "(\"\",\"\")", :actual "given an empty list, did not return an empty string"}], :duration "167"} {:event "testCompleted", :status "fail", :labels ["fuzzing" "This is a test."], :failures [{:given "(\"\",\"\")", :actual "given a list of length 3, did not return an oxford-style sentence"}], :duration "165"} {:event "testCompleted", :status "fail", :labels ["Some tests that should fail and produce shrunken values" "a randomly generated integer" "is for sure exactly 0"], :failures [{:given "1", :actual "1\n╷\n│ Expect.equal\n╵\n0"}], :duration "23"} {:event "testCompleted", :status "fail", :labels ["Some tests that should fail and produce shrunken values" "a randomly generated integer" "is <42"], :failures [{:given "42", :actual "42\n╷\n│ Expect.lessThan\n╵\n42"}], :duration "8"} {:event "testCompleted", :status "fail", :labels ["Some tests that should fail and produce shrunken values" "a randomly generated integer" "is also >42"], :failures [{:given "0", :actual "0\n╷\n│ Expect.greaterThan\n╵\n42"}], :duration "6"} {:event "testCompleted", :status "fail", :labels ["Some tests that should fail and produce shrunken values" "a randomly generated string" "equals its reverse"], :failures [{:given "\" !\"", :actual "\"! \"\n╷\n│ Expect.equal\n╵\n\" !\""} {:given "\"! \"", :actual "\" !\"\n╷\n│ Expect.equal\n╵\n\"! \""}], :duration "162"}]]
-;;   (println (count (group-tests (take 10 samples))))
-;;   (->> (group-tests (take 10 samples))
-;;        (map zip/node)
-;;        (map pr-str)
-;;        (map println)))
-
-
-
-
-;; (let [sample1 {:labels ["A Test Suite" "nisse" "nakke"] :failures [{:actual "dufus"}]}
-;;       sample2 {:labels ["A Test Suite" "nisse" "jakke"] :failures [{:actual "mucus"}]}
-;;       sample3 {:labels ["Another" "nisse" ] :failures [{:actual "sucus"}]}]
-
-;;   ;;(find-branch  (suitify-test sample1) (:labels sample2))
-;;     (zip/node (add-test-to-suite
-;;        (find-branch  (suitify-test sample1) (:labels sample2))
-;;        sample2))
-
-;; ;;   (let [grouped (group-tests [sample1 sample2])]
-;; ;;     (dufus-ui (zip/node (first grouped))))
-;;   ;;   (let [test1 (suitify-test sample1)]
-;;   ;;     (add-test-to-suite
-;;   ;;       (find-branch test1 (:labels sample2))
-;;   ;;       sample2))
-;;   )
-
-
-
+port emit : ( String, Value ) -> Cmd msg")))
 
 
 
@@ -338,7 +326,9 @@
                         (handle-test-result this res)
 
                         "runComplete"
-                        (handle-end this res))))
+                        (handle-end this res)
+
+                        (println "Unknown messsage: " res))))
 
 
 (object/object* ::dashboard
@@ -373,9 +363,56 @@
                            {:file (-> @ed :info :path)}
                            :only dashboard))))
 
+(behavior ::elm-test-suite
+          :triggers #{:elm.test.suite.start}
+          :desc "Start test suite, now that project is connected"
+          :reaction (fn [ed msg]
+                      (let [project-path (util/project-path (-> @ed :info :path))
+                            project-tests (elm-ast/get-project-tests project-path)]
+
+                        (println (create-suite project-tests))
+
+                        (if-not (empty? project-tests)
+                          (clients/send (elm-clients/get-eval-client ed :elm.test.suite)
+                                       :elm.test.suite
+                                       {:module "ElmTempTestSuite"
+                                        :suite (create-suite project-tests)}
+                                       :only dashboard)
+                          (notifos/set-msg! "No tests found for project")))))
+
+
+(defn- ast-pass-through [this ed msg]
+  (clients/send
+    (elm-clients/get-eval-client ed :editor.elm.ast.passthrough)
+    :editor.elm.ast.passthrough
+    msg
+    :only this))
+
+(behavior ::elm-test-suite.init
+          :triggers #{:elm.test.suite.init}
+          :desc "Initialize run of test suite"
+          :reaction (fn [ed]
+                      (let [{:keys [info]} @ed]
+                        ; (notifos/working "Initiate elm tests...")
+                        (tabs/add-or-focus! dashboard)
+                        (object/raise dashboard :elm.test.init (:path info))
+                        (ast-pass-through ed
+                                          ed
+                                          {:target :elm.test.suite.start
+                                           :data {:path (:path info)
+                                                  :project-path (util/project-path path)}}))))
+
 
 (cmd/command {:command :elm.test
               :desc "Elm: Test"
               :exec (fn []
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.test)))})
+
+
+(cmd/command {:command :elm.test.suite
+              :desc "Elm: Test All"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.test.suite.init)))})
+
