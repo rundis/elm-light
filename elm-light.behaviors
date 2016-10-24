@@ -10,6 +10,7 @@
  [:app :lt.objs.plugins/load-css "css/graph.css"]
  [:app :lt.objs.plugins/load-css "css/docpreview.css"]
  [:app :lt.objs.plugins/load-css "css/inlinedoc.css"]
+ [:app :lt.objs.plugins/load-css "css/test.css"]
 
  [:app :lt.objs.plugins/load-keymap "elm.keymap"]
 
@@ -159,7 +160,9 @@
  [:editor.elm :lt.plugins.elm-light.test/elm-test-suite]
  [:elm.test.dashboard :lt.plugins.elm-light.test/on-testrun-init]
  [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-result]
+ [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-error]
  [:elm.test.dashboard :lt.plugins.elm-light.test/on-close-destroy]
+
 
  ;; ***** Alternate autocompleter *****
 

@@ -1037,17 +1037,67 @@
 ;; Elm Test related
 ;;**********************************************************
 
+
+(defn- test-module-candidate? [module]
+  (let [imp-names (->> module :ast :imports :imports (map :value) set)]
+    (contains? imp-names "Test")))
+
+
+(defn- ignore-test? [decl]
+  (when (:doc decl)
+    (-> decl :doc (util/str-contains "@ltignore"))))
+
+
+
+(defn- get-test-decls [module]
+  (->> (get-exposed-declarations-memo module)
+       (filter #(and
+                  (not (ignore-test? %))
+                  (= "Test" (-> (:annotation %) :signature first :value))))))
+
+(defn- ->suite-tests [module]
+  (->> (get-test-decls module)
+       (map #(select-keys % [:value :module-name]))))
+
 (defn get-project-tests [project-path]
   (let [project (get-project project-path)]
     (->> (:file-asts project)
          (filter (fn [module]
                    (when-not (:package module)
-                     (let [imp-names (->> module :ast :imports :imports (map :value) set)]
-                       (contains? imp-names "Test")))))
-         (mapcat (fn [module]
-                   (let [decls (->> (get-exposed-declarations-memo module)
-                                    (filter #(= "Test" (-> (:annotation %) :signature first :value))))]
-                     (map #(select-keys % [:value :module-name]) decls)))))))
+                     (test-module-candidate? module))))
+         (mapcat ->suite-tests))))
+
+
+(defn get-module-tests [project-path module-file]
+  (let [module (get-module-ast project-path module-file)]
+    (if (test-module-candidate? module)
+      (->suite-tests module)
+      [])))
+
+
+(defn get-test-by-pos [pos project-path module-file]
+  (let [module (get-module-ast project-path module-file)
+        decl (find-top-level-declaration-by-pos pos module)]
+
+;;     (println "DECL: " decl)
+;;     (println "test module candidate ?" (test-module-candidate? module))
+;;     (println "exposed by module ?" (exposed-by-module?  module (:value decl)))
+;;     (println "Has test in annotation" (= "Test" (-> (:annotation decl) :signature first :value)))
+;;     (println "Should not be ignored ? " (not (ignore-test? decl)))
+
+    (if (and (test-module-candidate? module)
+             (exposed-by-module?  module (:value decl))
+             (= "Test" (-> (:annotation decl) :signature first :value))
+             (not (ignore-test? decl)))
+      [{:value (:value decl)
+        :module-name (get-module-name module)}]
+      [])))
+
+
+;; (get-test-by-pos {:ch 32 :line 131}
+;;                  "/Users/mrundberget/projects/elm-super-simple/tests"
+;;                  "/Users/mrundberget/projects/elm-super-simple/tests/MoreTests.elm")
+
 
 
 

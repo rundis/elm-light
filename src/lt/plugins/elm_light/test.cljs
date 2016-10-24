@@ -48,17 +48,27 @@
 
 (defn- add-test-to-suite [{:keys [zloc labels]}  {:keys [failures]}]
   (let [[head & tail] labels
-        root (-> (zip/rightmost zloc)
-                  (zip/insert-right [head])
-                  zip/right) ]
-    (-> (reduce (fn [zl label]
-                  (-> (zip/append-child zl [label])
-                      zip/down
-                      zip/right))
-                root
-                tail)
-        (zip/append-child {:failures failures})
-        z-top)))
+        root (when (seq labels)
+               (-> (zip/rightmost zloc)
+                   (zip/insert-right [head])
+                   zip/right)) ]
+
+    (if (seq labels)
+      (-> (reduce (fn [zl label]
+                    (-> (zip/append-child zl [label])
+                        zip/down
+                        zip/right))
+                  root
+                  tail)
+          (zip/append-child {:failures failures})
+          z-top)
+
+      ;; Just append the failures all labels are similar to get here...
+      (let [z-failures (zip/right zloc)
+            curr-fails (-> (zip/node z-failures) :failures)]
+        (->> {:failures (concat curr-fails failures)}
+             (zip/replace z-failures)
+             z-top)))))
 
 
 (defn- find-branch [zloc-suite labels]
@@ -66,7 +76,10 @@
          lbls labels]
     (let [branch (z-find-by-label (first lbls) zloc)]
       (cond
-        (and branch  (second lbls) (nil? (z-find-by-label (second lbls) branch)))
+        (and branch
+             (or (not (second lbls))
+                 (and (second lbls)
+                      (nil? (z-find-by-label (second lbls) branch)))))
         {:zloc branch :labels (drop 1 lbls)}
 
         (nil? branch)
@@ -82,12 +95,19 @@
               (if-not prev
                 (conj acc (suitify-test t))
                 (if-let [branch (find-branch prev (:labels t))]
-                  (-> (drop-last acc)
-                      vec
-                      (conj (add-test-to-suite branch t)))
-                  (conj acc (suitify-test t))))))
+                    (-> (drop-last acc)
+                        vec
+                        (conj (add-test-to-suite branch t)))
+                    (conj acc (suitify-test t))))))
           []
           tests))
+
+;; (let [sample1 {:labels ["oxfordify" "given a sentence with multiple items" "returns an oxford-style sentence"] :failures ["failure 1"]}
+;;       sample2 {:labels ["oxfordify" "given a sentence with multiple items" "returns an oxford-style sentence"] :failures ["failure 2"]}]
+;;   (let [suite1 (suitify-test sample1)]
+;;     (add-test-to-suite (find-branch suite1 (:labels sample2))
+;;                        sample2)))
+
 
 
 (declare dashboard)
@@ -104,13 +124,18 @@
    [:div.result-container "Placeholder for results"]])
 
 
+(defui loader []
+  [:div.bubblingG
+   [:span {:id "bubblingG_1"}]
+   [:span {:id "bubblingG_2"}]
+   [:span {:id "bubblingG_3"}]])
 
 
 (defui testprogress-ui [this {:keys [labels status] :as evt}]
   (let [testCount (or (-> @this :start :testCount) 0)
         progress (str (count (:tests @this)) "/" testCount)
         test-name (s/join " -> " labels)
-        clazz (if (:failures? @this) "error" "")
+        clazz (if (:failures? @this) "error" "ok")
         failed (get-status-count "fail" (:tests @this))
         passed (get-status-count "pass" (:tests @this))
         duration (if (= "runComplete" (:event evt))
@@ -165,33 +190,23 @@
   [:li
    (dufus-ui (zip/node z-failed-test))])
 
-(defui failed-tests-ui [failed-tests]
+(defui failed-tests-ui [failed-tests & ldr]
   (let [grouped (group-tests failed-tests)]
     [:div.test-failures
     [:h2 "Test Failures"]
     [:ul
+     (when ldr
+       ldr)
      (map failed-test-ui grouped)]]))
 
 
-
-;; (defui test-failures-ui [{:keys [labels status failures]}]
-;;   [:li
-;;    [:span (s/join " -> " labels)]
-;;    (map failure-item failures)])
-
-
-;; (defui failed-tests-ui [failed-tests]
-;;   [:div.test-failures
-;;    [:h2 "Test Failures"]
-;;    [:ul
-;;     (map test-failures-ui failed-tests)]])
 
 
 (defui project-ui [this]
   (let [proj-path (util/project-path (:file @this))
         proj-name (str (last (files/path-segs proj-path)) (files/basename proj-path))]
     [:div.project-container
-     [:h2 proj-name]]))
+     [:h1 proj-name]]))
 
 
 
@@ -219,7 +234,7 @@
 
                         (dom/empty result-container)
                         (dom/append result-container (testprogress-ui this {}))
-                        (dom/append result-container (failed-tests-ui []))
+                        (dom/append result-container (failed-tests-ui [] (loader)))
 
                         ;; TODO: Show some initial message, maybe which file is used ?
                         )))
@@ -277,6 +292,8 @@
 (defn- handle-start [this evt]
   (let [container (dom/$ :div.result-container (:content @this))]
     (dom/empty container)
+    (dom/append container (testprogress-ui this evt))
+    (dom/append container (failed-tests-ui [] (loader)))
     (object/assoc-in! this [:start] evt)
 
     (log-start evt)
@@ -289,7 +306,7 @@
 
 (defn create-suite
   "Create a test suite on the fly for running elm tests"
-  [project-tests]
+  [suite-name project-tests]
   (let [imports (->> (map :module-name project-tests)
                      set
                      (s/join "\nimport ")
@@ -298,7 +315,7 @@
                    (s/join ","))]
 
   (str
-"port module ElmTempTestSuite exposing (..)
+"port module " suite-name " exposing (..)
 
 import Test.Runner.Node exposing (run)
 import Json.Encode exposing (Value)
@@ -329,6 +346,17 @@ port emit : ( String, Value ) -> Cmd msg")))
                         (handle-end this res)
 
                         (println "Unknown messsage: " res))))
+
+
+(behavior ::elm-test-error
+          :triggers #{:elm.test.error}
+          :desc "Elm test error"
+          :reaction (fn [this err]
+                      (let [container (dom/$ :div.result-container (:content @this))]
+                        (dom/empty container)
+                        (dom/append container (testprogress-ui this {}))
+                        (dom/append container (failed-tests-ui [])))
+                      (console/error (:message err))))
 
 
 (object/object* ::dashboard
@@ -363,22 +391,42 @@ port emit : ( String, Value ) -> Cmd msg")))
                            {:file (-> @ed :info :path)}
                            :only dashboard))))
 
+
+(defn- get-applicable-tests [{:keys [pos path suite-type]}]
+  (let [project-path (util/project-path path)]
+    (case (keyword suite-type)
+      :all
+      (elm-ast/get-project-tests project-path)
+
+      :single
+      (elm-ast/get-test-by-pos pos project-path path)
+
+      :module
+      (elm-ast/get-module-tests project-path path)
+
+      [])))
+
+
 (behavior ::elm-test-suite
           :triggers #{:elm.test.suite.start}
           :desc "Start test suite, now that project is connected"
           :reaction (fn [ed msg]
                       (let [project-path (util/project-path (-> @ed :info :path))
-                            project-tests (elm-ast/get-project-tests project-path)]
+                            project-tests (get-applicable-tests msg)
+                            suite-name (str "ElmTempTestSuite" (rand-int 1000000))]
 
-                        (println (create-suite project-tests))
-
-                        (if-not (empty? project-tests)
+                        (if (seq project-tests)
                           (clients/send (elm-clients/get-eval-client ed :elm.test.suite)
-                                       :elm.test.suite
-                                       {:module "ElmTempTestSuite"
-                                        :suite (create-suite project-tests)}
-                                       :only dashboard)
-                          (notifos/set-msg! "No tests found for project")))))
+                                        :elm.test.suite
+                                        {:module suite-name
+                                         :suite (create-suite suite-name project-tests)}
+                                        :only dashboard)
+                          (do
+                            (let [container (dom/$ :div.result-container (:content @dashboard))]
+                              (dom/empty container)
+                              (dom/append container (testprogress-ui dashboard {}))
+                              (dom/append container (failed-tests-ui [])))
+                            (notifos/set-msg! "No tests found for project / given selection"))))))
 
 
 (defn- ast-pass-through [this ed msg]
@@ -391,28 +439,35 @@ port emit : ( String, Value ) -> Cmd msg")))
 (behavior ::elm-test-suite.init
           :triggers #{:elm.test.suite.init}
           :desc "Initialize run of test suite"
-          :reaction (fn [ed]
-                      (let [{:keys [info]} @ed]
+          :reaction (fn [ed suite-type]
+                      (let [{:keys [info]} @ed
+                            pos (editor/->cursor ed)]
                         ; (notifos/working "Initiate elm tests...")
                         (tabs/add-or-focus! dashboard)
                         (object/raise dashboard :elm.test.init (:path info))
                         (ast-pass-through ed
                                           ed
                                           {:target :elm.test.suite.start
-                                           :data {:path (:path info)
-                                                  :project-path (util/project-path path)}}))))
-
-
-(cmd/command {:command :elm.test
-              :desc "Elm: Test"
-              :exec (fn []
-                      (when-let [ed (pool/last-active)]
-                        (object/raise ed :elm.test)))})
+                                           :data {:pos pos
+                                                  :path (:path info)
+                                                  :suite-type suite-type}}))))
 
 
 (cmd/command {:command :elm.test.suite
               :desc "Elm: Test All"
               :exec (fn []
                       (when-let [ed (pool/last-active)]
-                        (object/raise ed :elm.test.suite.init)))})
+                        (object/raise ed :elm.test.suite.init :all)))})
+
+(cmd/command {:command :elm.test.module
+              :desc "Elm: Test Module"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.test.suite.init :module)))})
+
+(cmd/command {:command :elm.test.single
+              :desc "Elm: Test Current"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.test.suite.init :single)))})
 

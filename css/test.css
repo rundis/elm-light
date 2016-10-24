@@ -13,19 +13,30 @@
 
 .elmtest-dashboard .result-container {
   margin-top: 15px;
+
 }
 
 .elmtest-dashboard .test-failures {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
   margin-top: 10px;
+  box-sizing:border-box;
 }
 
 
 
 .elmtest-dashboard .test-failures > ul {
-  border: 1px solid darkgray;
+  border-top: 1px solid darkgray;
   overflow: scroll;
-  height: 600px;
-  padding: 8px;
+  left: 1px;
+  right:1px;
+  bottom: 130px;
+  top: 30px;
+  overflow: auto;
+  padding-top: 8px;
+  position: absolute;
 }
 
 .elmtest-dashboard .test-failures > ul > li {
@@ -33,9 +44,19 @@
   padding-top: 10px;
 }
 
-.elmtest-dashboard .test-failures > ul > li:nth-child(even) {
-  background: #060708;
+.elmtest-dashboard .test-failures > ul > li > ul > li > .test-label {
+  color: #7ffffd;
 }
+
+
+.elmtest-dashboard .test-failures > ul > li > ul {
+  color: #ccc;
+}
+
+
+/*.elmtest-dashboard .test-failures > ul > li:nth-child(even) {
+  background: inherit;
+}*/
 
 .elmtest-dashboard .test-failures > ul > li > ul li ul {
   margin-left : 10px;
@@ -46,7 +67,7 @@
 
 .elmtest-dashboard .test-failures > ul > li pre {
   margin-left: 20px;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 .elmtest-dashboard .test-failures .given {
@@ -82,10 +103,10 @@
   background-image: none;
 }
 
-.test-progress progress.ok::-webkit-progress-value {
-  background: green;
+.elmtest-dashboard .test-progress progress.ok::-webkit-progress-value {
+  background: #7CAB80;
 }
 
 .test-progress progress.error::-webkit-progress-value {
-  background: red;
+  background: #FF5357;
 }

@@ -698,9 +698,10 @@ function handleTest(clientId, msg) {
 
 
 function handleTestSuite(clientId, msg) {
-  var suiteFile = path.join(process.cwd(), "elm-temp-suite-000.elm");
+
   var testModuleName = msg.module;
   var suite = msg.suite;
+  var suiteFile = path.join(process.cwd(), "temp-" + testModuleName + ".elm");
   var seed = msg.seed ? msg.seed : null;
 
   var evalElmCode = function (compiledCode, finishedCb) {
@@ -732,7 +733,7 @@ function handleTestSuite(clientId, msg) {
   var cleanUp = function() {
     fs.unlink(suiteFile, function(err) {
       if (err) {
-        console.error("Error deleting temp test suite file: " + err);
+        console.error("Error deleting temp test suite file: " + suiteFile + " Error: " + err);
       }
     });
   };
@@ -746,7 +747,9 @@ function handleTestSuite(clientId, msg) {
 
     var err = res.output[2] + "";
     if(err.length > 0) {
+      send([clientId, "elm.test.error", {category: "compile", message: err.toString()}])
       console.error("Error from elm-make: " + err);
+      cleanUp();
     } else {
       evalElmCode(fs.readFileSync(info.path, {encoding: "utf8"}), cleanUp);
     }
