@@ -271,7 +271,10 @@ function parseSourceFiles() {
   sourceDirs.forEach(function (d) {
     walker.files(path.join(process.cwd(), d), function (basedir, filename, stat, next) {
       if (path.extname(filename) === ".elm" &&
-         !(basedir.startsWith(path.join(process.cwd(), "elm-stuff") ))) {
+         !(basedir.startsWith(path.join(process.cwd(), "elm-stuff"))) &&
+         !(basedir.startsWith(path.join(process.cwd(), "test")))
+         //(basedir.toString().indexOf("elm-stuff") === -1)
+         ) {
         parseAndSend(path.join(basedir, filename));
       }
       next();
