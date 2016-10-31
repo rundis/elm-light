@@ -34,7 +34,7 @@
 
 
  [:editor.elm.common :lt.object/add-tag :docable]
- [:elm.lang :lt.plugins.elm-light/eval!]
+ [:elm.lang :lt.plugins.elm-light.clients/eval!]
 
  ;; ELM REPL behaviors
  [:elmrepl :lt.plugins.elm-light.repl/repl-destroy-on-close]

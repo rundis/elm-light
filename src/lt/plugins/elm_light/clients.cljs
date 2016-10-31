@@ -191,6 +191,19 @@
                                          (:search msg)
                                          (:project-dir msg))])))
 
+(behavior ::eval!
+          :triggers #{:eval!}
+          :reaction (fn [this event]
+                      (let [{:keys [info origin]} event]
+                        (notifos/working "Evaluating elm...")
+                        (cs/send (eval/get-client! {:command :editor.eval.elm
+                                                    :origin origin
+                                                    :info info
+                                                    :create try-connect})
+                                 :editor.eval.elm info
+                                 :only origin))))
+
+
 
 
 ;;****************************************************

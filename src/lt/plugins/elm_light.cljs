@@ -6,6 +6,7 @@
             [lt.plugins.elm-light.linter :as linter]
             [lt.plugins.elm-light.gutter :as gutter]
             [lt.plugins.elm-light.widgets.selector :as selector]
+            [lt.plugins.elm-light.repl]
             [lt.object :as object]
             [lt.objs.command :as cmd]
             [lt.objs.editor.pool :as pool]
@@ -218,6 +219,7 @@
           :desc "Elm repl: Eval current selection"
           :triggers #{:eval.one}
           :reaction (fn [ed]
+                      (println "Eval one ")
                       (let [pos (editor/->cursor ed)
                             info (conj (:info @ed)
                                        (if (editor/selection? ed)
@@ -234,17 +236,7 @@
                         (object/raise elm :eval! {:origin ed :info info}))))
 
 
-(behavior ::eval!
-          :triggers #{:eval!}
-          :reaction (fn [this event]
-                      (let [{:keys [info origin]} event]
-                        (notifos/working "Evaluating elm...")
-                        (clients/send (eval/get-client! {:command :editor.eval.elm
-                                                         :origin origin
-                                                         :info info
-                                                         :create try-connect})
-                                      :editor.eval.elm info
-                                      :only origin))))
+
 
 (behavior ::eval-result
           :desc "Elm repl: Eval result"
