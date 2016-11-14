@@ -321,7 +321,7 @@ import Test.Runner.Node exposing (run)
 import Json.Encode exposing (Value)
 import Test"
 "\n" imports "\n"
-"main : Program Value
+"main : Test.Runner.Node.TestProgram
 main =
     run emit <| Test.concat [" tests "]
 

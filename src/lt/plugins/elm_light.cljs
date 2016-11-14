@@ -219,7 +219,6 @@
           :desc "Elm repl: Eval current selection"
           :triggers #{:eval.one}
           :reaction (fn [ed]
-                      (println "Eval one ")
                       (let [pos (editor/->cursor ed)
                             info (conj (:info @ed)
                                        (if (editor/selection? ed)
