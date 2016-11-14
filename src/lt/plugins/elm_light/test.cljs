@@ -19,6 +19,85 @@
 
 
 
+; Setup tests
+(def default-test-deps
+  {:elm-community/elm-test "3.0.0 <= v < 4.0.0"
+   :rtfeldman/node-test-runner "3.0.0 <= v < 4.0.0"})
+
+(defn ->test-src-dir [src-dir]
+  (if (= src-dir ".")
+    "../"
+    (str "../" src-dir)))
+
+(defn ->test-src-dirs [src-dirs]
+  (conj (mapv ->test-src-dir src-dirs) "."))
+
+
+(defn deps->named [deps]
+  (into {}
+        (map (fn [[k v]]
+               [(util/nskw->name k) v]) deps)))
+
+(defn ->test-config [project-cfg]
+  (-> project-cfg
+      (update-in [:source-directories] ->test-src-dirs)
+      (assoc :exposed-modules [])
+      (update-in [:dependencies] #(merge % default-test-deps))
+      (update-in [:dependencies] deps->named)))
+
+
+(defn parse-project-cfg [project-path]
+  (util/parse-json-file (files/join project-path "elm-package.json")))
+
+(defn save-test-cfg! [path test-cfg]
+  (->> (util/pretty-json test-cfg)
+       (files/save path)))
+
+(defn maybe-create-test-path! [project-path]
+  (let [test-path (files/join project-path "test")]
+    (when-not (files/exists? test-path)
+      (files/mkdir test-path))
+    test-path))
+
+(defn install-packages! [test-path]
+  (let [args ["install" "--yes"]
+        proc (.spawn (js/require "child_process")
+                     "elm-package"
+                     (clj->js args)
+                     #js {:cwd test-path})]
+
+    (.stdout.on proc "data" #(println (str "Test package install: " %)))
+    (.stderr.on proc "data" #(console/error (str %)))
+    (.on proc "exit" #(if (= % 0 )
+                        (notifos/done-working "Successfully configured elm test")
+                        (notifos/set-msg! "Error installing test elm packages" {:class "error" :timeout 5000})))
+    nil))
+
+
+(defn maybe-add-templates [test-path]
+  (let [templ-dir (files/join util/elm-plugin-dir "templates/test")
+        runner (files/join templ-dir "Main.elm")
+        tests (files/join templ-dir "Tests.elm")]
+    (when-not (files/exists? (files/join test-path "Main.elm"))
+      (files/copy runner (files/join test-path "Main.elm")))
+    (when-not (files/exists? (files/join test-path "Tests.elm"))
+      (files/copy tests (files/join test-path "Tests.elm")))))
+
+(defn setup-test [project-path]
+  (when-let [project-cfg (parse-project-cfg project-path)]
+    (notifos/working "Init elm test config")
+    (let [test-path (maybe-create-test-path! project-path)
+          test-cfg-path (files/join test-path "elm-package.json")]
+      (maybe-add-templates test-path)
+      (->> (->test-config project-cfg)
+           (save-test-cfg! test-cfg-path))
+      (install-packages! test-path))))
+
+
+
+
+
+
 ; --- ZIPPERS FOR GROUPING TESTS
 
 (defn- z-top [zloc]
@@ -452,6 +531,15 @@ port emit : ( String, Value ) -> Cmd msg")))
                                                   :path (:path info)
                                                   :suite-type suite-type}}))))
 
+(behavior ::elm-test-setup
+          :triggers #{:elm.test.setup}
+          :reaction (fn [ed]
+                      (let [path (-> @ed :info :path)]
+                        (when-let [prj-path (util/project-path path)]
+                          (setup-test prj-path)))))
+
+
+
 
 (cmd/command {:command :elm.test.suite
               :desc "Elm: Test All"
@@ -471,3 +559,9 @@ port emit : ( String, Value ) -> Cmd msg")))
                       (when-let [ed (pool/last-active)]
                         (object/raise ed :elm.test.suite.init :single)))})
 
+
+(cmd/command {:command :elm.test.setup
+              :desc "Elm: Test Setup"
+              :exec (fn []
+                      (when-let [ed (pool/last-active)]
+                        (object/raise ed :elm.test.setup)))})

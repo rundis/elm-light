@@ -158,6 +158,7 @@
  [:editor.elm :lt.plugins.elm-light.test/elm-test]
  [:editor.elm :lt.plugins.elm-light.test/elm-test-suite.init]
  [:editor.elm :lt.plugins.elm-light.test/elm-test-suite]
+ [:editor.elm :lt.plugins.elm-light.test/elm-test-setup]
  [:elm.test.dashboard :lt.plugins.elm-light.test/on-testrun-init]
  [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-result]
  [:elm.test.dashboard :lt.plugins.elm-light.test/elm-test-error]
