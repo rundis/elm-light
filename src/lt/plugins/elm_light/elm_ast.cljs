@@ -332,13 +332,14 @@
 
 (defn get-core-modules [all-modules]
   (->> (filter #(= "elm-lang/core" (-> % :package :name)) all-modules)
-                     (group-by #(-> % :ast :moduleDeclaration :value))))
+       (group-by #(-> % :ast :moduleDeclaration :value))))
 
 ;; TODO: Could potentially be memoized...
 (defn get-default-candidates
   "Get candidates for Elm default imports as per
   https://github.com/elm-lang/core"
   [modules]
+  (println (-> (get modules "String") first :package))
   (->> (concat
          (->> (get modules "Basics")
               (mapcat get-exposed-declarations)
@@ -384,8 +385,13 @@
               (map #(assoc % :candidate-tokens
                       (if (= "::" (:value %))
                         #{"::"}
-                        #{(str "List." (:value %))})))))
-      (map #(assoc % :default-candidate? true))))
+                        #{(str "List." (:value %))}))))
+
+         ;; 0.18 specific
+         (->> (get modules "Tuple")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens #{(str "Tuple." (:value %))}) )))
+       (map #(assoc % :default-candidate? true))))
 
 
 (def get-default-candidates-memo
