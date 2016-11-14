@@ -405,7 +405,7 @@
   (concat
     (get-current-module-candidates module)
     (get-external-candidates module modules)
-    (vec (get-default-candidates-memo (get-core-modules modules)))))
+    (get-default-candidates (get-core-modules modules))))
 
 
 
