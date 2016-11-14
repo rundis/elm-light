@@ -8,7 +8,10 @@ var os = require("os");
 var chokidar = require("chokidar")
 var walker = require('fs-walk');
 var temp = require("temp").track();
+var spawn = require('cross-spawn');
+
 var elmParser = require("./elmparser");
+
 
 
 
@@ -91,7 +94,7 @@ function doPackageInstall() {
 
 
 function startRepl(error, success, projectPath) {
-  elmGlobals.repl = cp.spawn("elm-repl", ["--interpreter", process.execPath ], {cwd: projectPath});
+  elmGlobals.repl = spawn("elm-repl", ["--interpreter", process.execPath ], {cwd: projectPath});
 
   var outBuffer = "";
   elmGlobals.repl.stdout.on("data", function(out) {
@@ -112,7 +115,7 @@ function startRepl(error, success, projectPath) {
 }
 
 function startReactor(error, success, projectPath, port) {
-  elmGlobals.reactor = cp.spawn("elm-reactor", ["--port=" + port], {cwd: projectPath});
+  elmGlobals.reactor = spawn("elm-reactor", ["--port=" + port], {cwd: projectPath});
 
   var errBuff = "";
   elmGlobals.reactor.stdout.on("data", function(out) {
@@ -585,7 +588,7 @@ function parseMakeResults(data) {
 function send(msg) { process.send(msg); }
 
 function handleLint(clientId, msg) {
-  var res = cp.spawnSync("elm-make",
+  var res = spawn.sync("elm-make",
                [msg.path, "--warn", "--yes", "--report=json", "--output=/dev/null"],
                {cwd: process.cwd()});
 
@@ -621,7 +624,7 @@ function handleMake(clientId, msg) {
   }
 
   var outputFile = msg.outputFile || inferOutputFile(msg.path);
-  var res = cp.spawnSync("elm-make",
+  var res = spawn.sync("elm-make",
                [msg.path, "--warn", "--yes", "--report=json", "--output=" + outputFile],
                {cwd: process.cwd()});
 
@@ -640,7 +643,7 @@ function handleMake(clientId, msg) {
 
 
 function handleGendoc(clientId, msg) {
-  var res = cp.spawnSync("elm-make",
+  var res = spawn.sync("elm-make",
                [msg.path, "--yes", "--docs=elm-stuff/docs.json", "--output=/dev/null"],
                {cwd: process.cwd()});
 
@@ -744,7 +747,7 @@ function handleTestSuite(clientId, msg) {
 
   fs.writeFileSync(suiteFile, suite, {encoding: "utf8"}); // TODO: Error handling
   temp.open({prefix: 'elm_test_', suffix: '.js'}, function (err, info) {
-    var res = cp.spawnSync("elm-make",
+    var res = spawn.sync("elm-make",
                [suiteFile, "--yes", "--output=" + info.path],
                {cwd: process.cwd()});
 
