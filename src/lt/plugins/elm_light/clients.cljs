@@ -24,19 +24,6 @@
 
 
 
-(defn get-elm-version []
-  (try
-    (.toString (.execSync cp "elm --version"))
-    (catch :default e
-      (console/error "elm command not found in path")
-      nil)))
-
-
-
-
-
-
-
 
 (declare elm)
 

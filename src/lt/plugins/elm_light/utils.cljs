@@ -17,10 +17,11 @@
 
 (defn get-elm-version []
   (try
-    (s/trim (.toString (.execSync cp "elm --version")))
+    (s/trim (.toString (.execSync cp "elm --version" #js {:stdio "pipe"})))
     (catch :default e
       (console/error "elm command not found in path")
       nil)))
+
 
 (defn try-parse-int [o]
   (try
