@@ -334,12 +334,19 @@
   (->> (filter #(= "elm-lang/core" (-> % :package :name)) all-modules)
        (group-by #(-> % :ast :moduleDeclaration :value))))
 
+
+
+(defn- elm-18? [version]
+  (and version (<= 5 (js/parseInt (first version)))))
+
+
+
+
 ;; TODO: Could potentially be memoized...
 (defn get-default-candidates
   "Get candidates for Elm default imports as per
   https://github.com/elm-lang/core"
   [modules]
-  (println (-> (get modules "String") first :package))
   (->> (concat
          (->> (get modules "Basics")
               (mapcat get-exposed-declarations)
@@ -390,7 +397,11 @@
          ;; 0.18 specific
          (->> (get modules "Tuple")
               (mapcat get-exposed-declarations)
-              (map #(assoc % :candidate-tokens #{(str "Tuple." (:value %))}) )))
+              (map #(assoc % :candidate-tokens #{(str "Tuple." (:value %))}) ))
+         (when (-> (get modules "String") first :package :version elm-18?)
+           (->> (get modules "String")
+              (mapcat get-exposed-declarations)
+              (map #(assoc % :candidate-tokens #{(str "String." (:value %))}) ))))
        (map #(assoc % :default-candidate? true))))
 
 

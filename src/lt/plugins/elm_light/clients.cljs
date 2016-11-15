@@ -12,7 +12,8 @@
             [lt.objs.dialogs :as dialogs]
             [lt.objs.sidebar.clients :as scl]
             [lt.objs.popup :as popup]
-            [lt.objs.platform :as platform])
+            [lt.objs.platform :as platform]
+            [clojure.string :as s])
   (:require-macros [lt.macros :refer [behavior]]))
 
 (def cp (js/require "child_process"))
@@ -23,6 +24,25 @@
 
 
 
+(defn get-elm-version []
+  (try
+    (.toString (.execSync cp "elm --version"))
+    (catch :default e
+      (console/error "elm command not found in path")
+      nil)))
+
+
+
+(defn parse-project-elm-version [bounds-str]
+  (let [parts (s/split bounds-str " ")
+        lowers (map js/parseInt (s/split (first parts) #"\."))
+        uppers (map js/parseInt (s/split (last parts) #"\."))]
+    {:lower (zipmap [:major :minor :patch] lowers)
+     :upper (zipmap [:major :minor :patch] uppers)}))
+
+
+
+; (parse-project-elm-version "0.18.0 <= v < 0.19.0" )
 
 (declare elm)
 
