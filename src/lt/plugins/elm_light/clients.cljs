@@ -10,13 +10,19 @@
             [lt.objs.eval :as eval]
             [lt.objs.editor.pool :as pool]
             [lt.objs.dialogs :as dialogs]
-            [lt.objs.sidebar.clients :as scl])
+            [lt.objs.sidebar.clients :as scl]
+            [lt.objs.popup :as popup]
+            [lt.objs.platform :as platform])
   (:require-macros [lt.macros :refer [behavior]]))
 
 (def cp (js/require "child_process"))
 (def os (js/require "os"))
 (def elm-client-path (files/join u/elm-plugin-dir "node/elm-client.js"))
 (def elm-node-path (files/join u/elm-plugin-dir "node_modules"))
+(def shelljs (js/require (files/join elm-node-path "shelljs")))
+
+
+
 
 (declare elm)
 
@@ -140,42 +146,95 @@
                           (object/add-behavior! client ::send!)))))
 
 
+
+
+(defn handle-no-elm []
+  (notifos/done-working)
+  (console/log (.-PATH (.-env js/process)))
+  (popup/popup! {:header "We couldn't find Elm (elm-make) in your path"
+                 :body (str "In order to use elm-light, Elm must be installed and on your system PATH."
+                            "(Check the console for PATH as seen from Light Table")
+                 :buttons [{:label "Install Elm"
+                            :action (fn []
+                                      (platform/open "https://guide.elm-lang.org/install.html"))}
+                           {:label "ok"}]}))
+
+
+(defn check-elm []
+  (.which shelljs "elm-make"))
+
+
+
 (defn try-connect [{:keys [info] :as props}]
-  (let [path (:path info)
-        proj-path (u/project-path path)
-        client (cs/client! :elm-client)]
+  (if (check-elm)
+    (let [path (:path info)
+         proj-path (u/project-path path)
+         client (cs/client! :elm-client)]
 
-    (if proj-path
-      (start-elm-client {:path path
-                         :proj-path proj-path
-                         :client client})
-      (do
-        (notifos/done-working)
-        (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
-        (cs/rem! client)))
-    client))
+     (if proj-path
+       (start-elm-client {:path path
+                          :proj-path proj-path
+                          :client client})
+       (do
+         (notifos/done-working)
+         (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
+         (cs/rem! client)))
+     client)
+    (do
+      (handle-no-elm)
+      nil)))
 
+
+
+
+(defn find-client [{:keys [origin command info create] :as opts}]
+  (let [proj-path (u/project-path (:path info))
+        [result client] (cs/discover command info)]
+
+    (condp = result
+      :none (if create
+              (create opts)
+              (do
+                (notifos/done-working)
+                (object/raise eval/evaler :no-client opts)
+                (cs/placeholder)))
+      :found (if (= (:dir @client) proj-path)
+               client
+               (create opts))
+      :select (do
+                (object/raise eval/evaler
+                              :select-client
+                              client
+                              (fn [client]
+                                (cs/swap-client! (-> @origin :client :default) client)
+                                (object/update! origin [:client] assoc :default client)))
+                (cs/placeholder)))))
 
 
 (defn get-eval-client
   "Helper method to get eval client for a given editor and command
   If none found it will try to connect"
-  [ed cmd]
-  (eval/get-client! {:command cmd
-                     :origin ed
-                     :info (:info @ed)
-                     :create try-connect}))
+  ([ed cmd] (get-eval-client ed cmd try-connect))
+  ([ed cmd create]
+   (let [cur (-> @ed :client :default)]
+     (if (and cur (cs/available? cur))
+       cur
+       (let [neue (find-client {:command cmd
+                                :origin ed
+                                :info (:info @ed)
+                                :create create})]
+
+         (object/update! ed [:client] assoc :default neue)
+         (object/raise ed :set-client neue)
+         neue)))))
 
 
 (defn get-eval-client-if-connected
   "Helper method to get eval client for a given editor and command"
   [ed cmd]
-  (eval/get-client! {:command cmd
-                     :origin ed
-                     :info (:info @ed)
-                     :create (fn [opts]
+  (get-eval-client ed cmd (fn [opts]
                                (notifos/done-working "")
-                               nil)}))
+                               nil)))
 
 
 ;; TODO : Need to have this here for now, because behaviour must be defined before Elm object is created
