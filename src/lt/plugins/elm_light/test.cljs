@@ -515,29 +515,52 @@ port emit : ( String, Value ) -> Cmd msg")))
     msg
     :only this))
 
+
+(defn- check-elm-version [proj-path]
+  (let [elm-v (util/get-elm-version)]
+    (if-not (util/ver-LTE? "0.18.0" elm-v)
+      (do
+        (console/error (str "Test feature requires elm 0.18.0, but current elm version is: " elm-v))
+        (notifos/set-msg! (str "Test feature requires elm 0.18.0, but current elm version is: " elm-v)
+                          {:class "error"})
+        false)
+      (let [[ok? bounds] (util/project-satisfies-version? "0.18.0" proj-path)]
+        (if ok?
+          true
+          (do
+            (console/error (str "Elm test requires elm version 0.18.0 or higher but project has: " bounds))
+            (notifos/set-msg! (str "Elm test requires elm version 0.18.0 or higher but project has: " bounds) {:class "error"})
+            false))))))
+
+
+
+
+;(check-elm-version)
+
 (behavior ::elm-test-suite.init
           :triggers #{:elm.test.suite.init}
           :desc "Initialize run of test suite"
           :reaction (fn [ed suite-type]
-                      (let [{:keys [info]} @ed
-                            pos (editor/->cursor ed)]
-                        ; (notifos/working "Initiate elm tests...")
-                        (tabs/add-or-focus! dashboard)
-                        (object/raise dashboard :elm.test.init (:path info))
-                        (ast-pass-through ed
-                                          ed
-                                          {:target :elm.test.suite.start
-                                           :data {:pos pos
-                                                  :path (:path info)
-                                                  :suite-type suite-type}}))))
+                      (when-let [proj-path (util/project-path (-> @ed :info :path))]
+                        (when (check-elm-version proj-path)
+                         (let [{:keys [info]} @ed
+                               pos (editor/->cursor ed)]
+                           ; (notifos/working "Initiate elm tests...")
+                           (tabs/add-or-focus! dashboard)
+                           (object/raise dashboard :elm.test.init (:path info))
+                           (ast-pass-through ed
+                                             ed
+                                             {:target :elm.test.suite.start
+                                              :data {:pos pos
+                                                     :path (:path info)
+                                                     :suite-type suite-type}}))))))
 
 (behavior ::elm-test-setup
           :triggers #{:elm.test.setup}
           :reaction (fn [ed]
-                      (let [path (-> @ed :info :path)]
-                        (when-let [prj-path (util/project-path path)]
+                      (when-let [prj-path (util/project-path (-> @ed :info :path))]
+                        (when (check-elm-version prj-path)
                           (setup-test prj-path)))))
-
 
 
 

@@ -33,16 +33,10 @@
 
 
 
-(defn parse-project-elm-version [bounds-str]
-  (let [parts (s/split bounds-str " ")
-        lowers (map js/parseInt (s/split (first parts) #"\."))
-        uppers (map js/parseInt (s/split (last parts) #"\."))]
-    {:lower (zipmap [:major :minor :patch] lowers)
-     :upper (zipmap [:major :minor :patch] uppers)}))
 
 
 
-; (parse-project-elm-version "0.18.0 <= v < 0.19.0" )
+
 
 (declare elm)
 
@@ -185,24 +179,34 @@
 
 
 
-(defn try-connect [{:keys [info] :as props}]
-  (if (check-elm)
-    (let [path (:path info)
-         proj-path (u/project-path path)
-         client (cs/client! :elm-client)]
+(defn try-connect [{:keys [info command] :as props}]
+  (let [path (:path info)
+        proj-path (u/project-path path)
+        client (cs/client! :elm-client)]
+    (cond
+      (not (seq proj-path))
+      (do
+        (notifos/done-working)
+        (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
+        (cs/rem! client))
 
-     (if proj-path
-       (start-elm-client {:path path
-                          :proj-path proj-path
-                          :client client})
-       (do
-         (notifos/done-working)
-         (notifos/set-msg! (str "Couldn't find a elm-package.json in any parent of path: " path) {:class "error"})
-         (cs/rem! client)))
-     client)
-    (do
-      (handle-no-elm)
-      nil)))
+      (not (check-elm))
+      (do
+        (handle-no-elm)
+        (cs/rem! client))
+
+      :else
+      (let [[ok? msg] (u/valid-project-elm-version proj-path)]
+        (if ok?
+          (start-elm-client {:path path
+                             :proj-path proj-path
+                             :client client})
+          (do
+            (notifos/done-working)
+            (console/error msg)
+            (notifos/set-msg! msg {:class "error"})
+            (cs/rem! client)))))
+    client))
 
 
 

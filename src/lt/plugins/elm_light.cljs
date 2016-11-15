@@ -130,10 +130,9 @@
           :description "Lint (/make) a given elm file"
           :triggers #{:lint}
           :reaction (fn [ed result-handler-trigger]
-                      (let [info (:info @ed)
-                            cl (get-eval-client ed :editor.elm.lint)]
+                      (let [info (:info @ed)                            ]
                         (notifos/working (str "Starting elm linting of: " (:path info)))
-                        (clients/send cl
+                        (clients/send (get-eval-client ed :editor.elm.lint)
                                       :editor.elm.lint
                                       (assoc info :project-path (project-path (:path info))
                                                   :handler (name result-handler-trigger))
