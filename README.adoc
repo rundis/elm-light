@@ -34,7 +34,7 @@ this is a great way to try out the latest and greatests not yet released !)
 * For all commands/features you will need to have a project folder with a `elm-package.json` file
 
 
-NOTE: Tested with Elm 0.17.1 on OS/X 10.9.5, Ubuntu 14.04 and Windows 10.
+NOTE: Tested with Elm 0.18.0 and Elm 0.17.1 on OS/X 10.9.5, Ubuntu 14.04 and Windows 10.
 
 == Documentation
 Please see the https://rundis.gitbooks.io/elm-light-guide/content/[Guide] for a comprehensive documentaiton
@@ -52,6 +52,14 @@ on how to use the plugin.
 Pull requests are most welcome. Please do not include the transpiled files (*_compiled*) in the PR.
 
 == History
+* 0.5.0 Elm Test support is back (requires Elm 0.18).
+** Features to set up new test project, run one, a modules or all tests in your project. Test results display in a visual test runner + in the console.
+** Show popup if the plugin isn't able to find the elm binaries
+** Show errors when there is a mismatch between your project version and the currently install Elm version on your machine
+** Show popup if you try to use elm-format related features, but the plugin is unable to find the elm-format executable
+** Attempted to provide better support for node installed Elm executables on Windows (using cross-spawn)
+** Fixed a regression with the interactive repl features not working
+** Adjusted the autocompleter for changes in default imports in Elm 0.18
 * 0.4.2
 ** Fixed a bug with faulty/erronous events from chokidar or it's underlying libs causing issues on Windows
 * 0.4.1
