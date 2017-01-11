@@ -371,7 +371,7 @@ function parseAndSendPackageSource(package, file) {
     var exposedModules = getExposedModules(package.packageDir);
 
     var shouldParse = exposedModules.map (function (mod) {
-      return mod.replace(".", path.sep) + ".elm";
+      return mod.replace(/\./g, path.sep) + ".elm";
     }).find(function (v) {
       return file.endsWith(v);
     });

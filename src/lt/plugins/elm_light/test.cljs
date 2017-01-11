@@ -54,7 +54,7 @@
        (files/save path)))
 
 (defn maybe-create-test-path! [project-path]
-  (let [test-path (files/join project-path "test")]
+  (let [test-path (files/join project-path "tests")]
     (when-not (files/exists? test-path)
       (files/mkdir test-path))
     test-path))

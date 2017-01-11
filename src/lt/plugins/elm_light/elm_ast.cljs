@@ -1172,4 +1172,11 @@
 
 
 
+;; (let [p-file "/Users/mrundberget/projects/bootstrap-for-elm/tests"]
+;;   (->> (get-project p-file)
+;;        :file-asts
+;;        (map :file)
+;;        (map println)))
+
+
 
