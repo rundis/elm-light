@@ -1,6 +1,7 @@
 (ns lt.plugins.elm-light.docpreview
   (:require [lt.plugins.elm-light.clients :refer [try-connect]]
             [lt.plugins.elm-light.utils :refer [project-path]]
+            [lt.plugins.elm-light.elm-ast :as ast]
             [lt.object :as object]
             [lt.objs.eval :as eval]
             [lt.objs.clients :as clients]
@@ -78,8 +79,12 @@
           :reaction (fn [ed res]
                       (notifos/done-working "Elm doc generated")
                       (when-let [elmdoc (:elmdoc @ed)]
-                        (let [preview (maybe-create-elm-preview elmdoc)]
+                        (let [preview (maybe-create-elm-preview elmdoc)
+                              path (-> @ed :info :path)
+                              module-name (-> (ast/get-module-ast (project-path path) path)
+                                              ast/get-module-name)]
                           (.send (.-modules (.-ports preview)) res)
+                          (.send (.-selectModule (.-ports preview)) module-name)
                           ;; Hack, when kittens go to die (:
                           (js-util/wait 50
                                         #(doseq [block (dom/$$ "pre code" (object/->content elmdoc))]
