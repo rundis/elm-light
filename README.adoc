@@ -14,7 +14,6 @@ endif::[]
 http://elm-lang.org/[Elm] language plugin for Light Table
 
 
-image:https://badges.gitter.im/rundis/elm-light.svg[link="https://gitter.im/rundis/elm-light?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 
 image:elm-light.png[]
 
@@ -44,6 +43,27 @@ on how to use the plugin.
 * http://rundis.github.io/blog/2015/elm_light.html[ScreenCast] - Demo of the features available in the first release of the plugin
 * http://elm-lang.org/[elm-lang.org] - The home of Elm
 * https://github.com/LightTable/LightTable[Light Table] - Light Table on GitHub
+
+
+
+== Feature demos
+
+=== Testing
+image:elm-light-test-teaser.gif[]
+
+
+=== Inline docs and jump to
+image:ast_teaser.gif[]
+
+
+==== Type aliases and records even
+image:elm-light_type_alias.gif[]
+
+
+=== Module graph
+image:module-graph.gif[]
+
+
 
 
 
