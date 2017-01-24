@@ -60,6 +60,12 @@ image:ast_teaser.gif[]
 image:elm-light_type_alias.gif[]
 
 
+=== Package Manager
+
+==== Install package and start using at once
+image:pck_inst_and_use.gif[]
+
+
 === Module graph
 image:module-graph.gif[]
 
