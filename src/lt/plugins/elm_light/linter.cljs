@@ -132,11 +132,14 @@
     (dom/focus ui)))
 
 
+(defn- mark-range [ed {:keys [from to] :as code-range}]
+  (if-not (= from to )
+    code-range
+    {:from (assoc from :ch 0)
+     :to (assoc to :ch (editor/line-length ed (:line from)))}))
+
 (defn create-mark [ed {:keys [category code-range]}]
-  (let [from (:from code-range)
-        to (if-not (= (:to code-range) from)
-             (:to code-range)
-             (assoc from :ch (dec (editor/line-length ed (:line from)))))]
+  (let [{:keys [from to]} (mark-range ed code-range)]
     (editor/mark ed
                  from
                  to
