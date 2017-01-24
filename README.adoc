@@ -15,7 +15,7 @@ http://elm-lang.org/[Elm] language plugin for Light Table
 
 
 
-image:elm-light.png[]
+image:images/elm-light.png[]
 
 == Installation
 Install using the Light Table plugin manager.
@@ -49,25 +49,25 @@ on how to use the plugin.
 == Feature demos
 
 === Testing
-image:elm-light-test-teaser.gif[]
+image:images/elm-light-test-teaser.gif[]
 
 
 === Inline docs and jump to
-image:ast_teaser.gif[]
+image:images/ast_teaser.gif[]
 
 
 ==== Type aliases and records even
-image:elm-light_type_alias.gif[]
+image:images/elm-light_type_alias.gif[]
 
 
 === Package Manager
 
 ==== Install package and start using at once
-image:pck_inst_and_use.gif[]
+image:images/pck_inst_and_use.gif[]
 
 
 === Module graph
-image:module-graph.gif[]
+image:images/module-graph.gif[]
 
 
 
