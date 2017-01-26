@@ -266,7 +266,8 @@ module.exports = (function() {
                 value: ref.value,
                 signature: sig.signature,
                 signatureRaw: text(),
-                signatureRawSansName: sig.raw
+                signatureRawSansName: sig.raw,
+                location: location()
               }
             },
         peg$c87 = "infixr",
@@ -5774,28 +5775,37 @@ module.exports = (function() {
                               if (peg$silentFails === 0) { peg$fail(peg$c176); }
                             }
                             if (s1 === peg$FAILED) {
-                              if (input.substr(peg$currPos, 5) === peg$c91) {
-                                s1 = peg$c91;
-                                peg$currPos += 5;
+                              if (input.substr(peg$currPos, 2) === peg$c24) {
+                                s1 = peg$c24;
+                                peg$currPos += 2;
                               } else {
                                 s1 = peg$FAILED;
-                                if (peg$silentFails === 0) { peg$fail(peg$c92); }
+                                if (peg$silentFails === 0) { peg$fail(peg$c25); }
                               }
                               if (s1 === peg$FAILED) {
-                                if (input.substr(peg$currPos, 6) === peg$c89) {
-                                  s1 = peg$c89;
-                                  peg$currPos += 6;
+                                if (input.substr(peg$currPos, 5) === peg$c91) {
+                                  s1 = peg$c91;
+                                  peg$currPos += 5;
                                 } else {
                                   s1 = peg$FAILED;
-                                  if (peg$silentFails === 0) { peg$fail(peg$c90); }
+                                  if (peg$silentFails === 0) { peg$fail(peg$c92); }
                                 }
                                 if (s1 === peg$FAILED) {
-                                  if (input.substr(peg$currPos, 6) === peg$c87) {
-                                    s1 = peg$c87;
+                                  if (input.substr(peg$currPos, 6) === peg$c89) {
+                                    s1 = peg$c89;
                                     peg$currPos += 6;
                                   } else {
                                     s1 = peg$FAILED;
-                                    if (peg$silentFails === 0) { peg$fail(peg$c88); }
+                                    if (peg$silentFails === 0) { peg$fail(peg$c90); }
+                                  }
+                                  if (s1 === peg$FAILED) {
+                                    if (input.substr(peg$currPos, 6) === peg$c87) {
+                                      s1 = peg$c87;
+                                      peg$currPos += 6;
+                                    } else {
+                                      s1 = peg$FAILED;
+                                      if (peg$silentFails === 0) { peg$fail(peg$c88); }
+                                    }
                                   }
                                 }
                               }
