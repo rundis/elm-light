@@ -367,11 +367,12 @@
                             path (-> @ed :info :path)]
                         (when token
                           (when-let [target (elm-ast/get-jump-to-definition token pos path (project-path path))]
-                            (object/raise lt.objs.jump-stack/jump-stack
-                                            :jump-stack.push!
-                                            ed
-                                            (:file target)
-                                            (location->pos (:location target))))))))
+                            (when (:file target)
+                              (object/raise lt.objs.jump-stack/jump-stack
+                                           :jump-stack.push!
+                                           ed
+                                           (:file target)
+                                           (location->pos (:location target)))))))))
 
 
 (behavior ::elm-doc-start
@@ -398,7 +399,9 @@
                                                                           (project-path path))]
                           (object/raise ed
                                         :editor.elm.doc.show!
-                                        {:name (str (:module-name target) "." (:value target)
+                                        {:name (str (:module-name target)
+                                                    (when (:module-name target) ".")
+                                                    (:value target)
                                                     (when-let [pck (:package target)]
                                                       (str " (" (:name pck) " " (:version pck) ")")))
                                          :args (or
