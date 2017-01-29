@@ -1,6 +1,6 @@
 (ns lt.plugins.elm-light.docpreview
   (:require [lt.plugins.elm-light.clients :refer [try-connect]]
-            [lt.plugins.elm-light.utils :refer [project-path]]
+            [lt.plugins.elm-light.utils :refer [project-path elm-plugin-dir]]
             [lt.plugins.elm-light.elm-ast :as ast]
             [lt.object :as object]
             [lt.objs.eval :as eval]
@@ -11,10 +11,13 @@
             [lt.objs.notifos :as notifos]
             [lt.objs.tabs :as tabs]
             [lt.util.dom :as dom]
-            [lt.util.js :as js-util])
+            [lt.util.js :as js-util]
+            [lt.util.load :as loadz]
+            [lt.objs.files :as files])
   (:require-macros [lt.macros :refer [defui behavior]]))
 
 
+(def highlight-js (files/join elm-plugin-dir "js" "highlight.pack.js"))
 
 
 (defui preview-skeleton [this]
@@ -86,9 +89,13 @@
                           (.send (.-modules (.-ports preview)) res)
                           (.send (.-selectModule (.-ports preview)) module-name)
                           ;; Hack, when kittens go to die (:
-                          (js-util/wait 50
-                                        #(doseq [block (dom/$$ "pre code" (object/->content elmdoc))]
-                                           (.highlightBlock js/hljs block)))))))
+                          (.requestAnimationFrame js/window
+                                                  #(doseq [block (dom/$$ "pre > code" (object/->content elmdoc))]
+                                                     (.highlightBlock js/hljs block)))
+;;                           (js-util/wait 50
+;;                                         #(doseq [block (dom/$$ "pre > code" (object/->content elmdoc))]
+;;                                            (.highlightBlock js/hljs block)))
+                          ))))
 
 
 (behavior ::gen-on-save
@@ -102,6 +109,7 @@
           :reaction (fn [ed]
                       (let [path (-> @ed :info :path)
                             elmdoc-obj (or (:elmdoc @ed) (object/create ::elmdoc path))]
+                        (loadz/js highlight-js :sync)
                         (tabs/add-or-focus! elmdoc-obj)
                         (object/assoc-in! ed [:elmdoc] elmdoc-obj)
                         (object/assoc-in! elmdoc-obj [:owner-ed] ed)

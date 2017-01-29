@@ -66,6 +66,11 @@ image:images/elm-light_type_alias.gif[]
 image:images/pck_inst_and_use.gif[]
 
 
+=== Package docs
+Preview package documentation inside Light Table. Updates on save.
+image:images/package_docs.gif[]
+
+
 === Module graph
 image:images/module-graph.gif[]
 
