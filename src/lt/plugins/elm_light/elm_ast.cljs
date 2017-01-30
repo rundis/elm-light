@@ -535,17 +535,35 @@
       (when (= "variable" (:type fst-destruct-variable))
         (let [adtParam (-> adtType :params first)
               adtCandidate (get-candidate-by-token (:value adtParam) module modules) ]
-          (if adtCandidate
-            [{:value (:value adtCandidate)
-              :candidate (:value fst-destruct-variable)
-              :location (:location adtCandidate)
-              :package (:package adtCandidate)
-              :file (:file adtCandidate)
-              :doc (:doc adtCandidate)
-              :module-name (:module-name adtCandidate)}]
+          (concat
+            (when adtCandidate
+              [{:value (:value adtCandidate)
+                :candidate (:value fst-destruct-variable)
+                :location (:location adtCandidate)
+                :package (:package adtCandidate)
+                :file (:file adtCandidate)
+                :doc (:doc adtCandidate)
+                :module-name (:module-name adtCandidate)}])
 
-            [{:value (:value adtParam)
-              :candidate (:value fst-destruct-variable)}])))
+            (when (= "typeRec" (:type adtParam))
+              (concat
+                [{:value (str (:value candidate) "." (:value adtType) ".<customrecord>")
+                 :candidate (:value fst-destruct-variable)
+                 :location (:location adtParam)
+                 :doc (print-rec adtParam)
+                 :package (:package candidate)
+                 :file (:file candidate)
+                 :module-name (:module-name candidate)}])
+              (map #(hash-map
+                      :value (str (:value candidate) "." (:value adtType) ".<customrecord>." (:name %))
+                      :candidate (str (:value fst-destruct-variable) "." (:name %))
+                      :location (:location %)
+                      :doc (:signatureRaw %)
+                      :package (:package candidate)
+                      :file (:file candidate)
+                      :module-name (:module-name candidate))
+                   (:fieldDefs adtParam))))))
+
 
       (when [(= "patternRec" (:type fst-destruct-variable))]
         (let [adtParam (-> adtType :params first)
@@ -571,29 +589,29 @@
 
                 (when (= "patternRec" (:type fst-destruct-variable))
                   (map (fn [field]
-                        (when (get-field-def (:value field))
-                          (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
-                            {:value (str (:value adtCandidate) "." (:value field))
-                             :candidate (:value field)
-                             :package (:package adtCandidate)
-                             :file (:file adtCandidate)
-                             :doc signatureRaw
-                             :location location
-                             :module-name (:module-name adtCandidate)})))
-                      (-> fst-destruct-variable :patterns)))
+                         (when (get-field-def (:value field))
+                           (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
+                             {:value (str (:value adtCandidate) "." (:value field))
+                              :candidate (:value field)
+                              :package (:package adtCandidate)
+                              :file (:file adtCandidate)
+                              :doc signatureRaw
+                              :location location
+                              :module-name (:module-name adtCandidate)})))
+                       (-> fst-destruct-variable :patterns)))
 
                 (when (= "patternBracket" (:type fst-destruct-variable))
                   (map (fn [field]
-                        (when (get-field-def (:value field))
-                          (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
-                            {:value (str (:value adtCandidate) "." (:value field))
-                             :candidate (:value field)
-                             :package (:package adtCandidate)
-                             :file (:file adtCandidate)
-                             :doc signatureRaw
-                             :location location
-                             :module-name (:module-name adtCandidate)})))
-                      (-> fst-destruct-variable :pattern :value :patterns)))))
+                         (when (get-field-def (:value field))
+                           (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
+                             {:value (str (:value adtCandidate) "." (:value field))
+                              :candidate (:value field)
+                              :package (:package adtCandidate)
+                              :file (:file adtCandidate)
+                              :doc signatureRaw
+                              :location location
+                              :module-name (:module-name adtCandidate)})))
+                       (-> fst-destruct-variable :pattern :value :patterns)))))
 
             (when (= "typeRec" (-> adtType :params first :type))
               (concat
@@ -805,6 +823,7 @@
     (if (and (= "nameDef" (:type decl))
              (-> decl :annotation :signature))
       (mapcat (fn [param {:keys [candidate] :as ann}]
+
                 (cond
                   (and (= "variable" (:type param))
                        (= "typeRec" (:type ann)))
@@ -878,11 +897,13 @@
                        (not (in-range? pos (-> decl :annotation))))
 
 
+
                   (let [pattern-param (-> param :pattern :value :variables first)
                         adtType (-> candidate :adtDefs first)
                         adtPattern (:pattern param)
                         adtParam (-> adtType :params first)
                         adtCandidate (get-jump-to-by-token (:value adtParam))]
+
                     (concat
                       (when-let [aliaz (:alias adtPattern)]
                         [{:candidate aliaz
@@ -891,6 +912,13 @@
                       (when (and (= "variable" (:type pattern-param))
                                  (nil? (:type adtCandidate)))
                         [{:candidate (:value pattern-param)}])
+
+                      (when (and (= "variable" (:type pattern-param))
+                                 (= "typeRec" (:type adtParam)))
+                        (map #(hash-map
+                                :candidate (str (:value pattern-param) "." (:name %))
+                                :module-name (mod-name candidate))
+                             (:fieldDefs adtParam)))
 
                       (when (and (= "variable" (:type pattern-param))
                                  (= "typeAliasDecl" (:type adtCandidate)))
