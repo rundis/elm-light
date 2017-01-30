@@ -353,7 +353,9 @@ module.exports = (function() {
         peg$c112 = function(rs) {
               return {
               	type: "typeRec",
-                fieldDefs: rs || []
+                fieldDefs: rs || [],
+                location: location(),
+                signatureRaw: text()
               }
             },
         peg$c113 = function(id, first, r) { return r; },

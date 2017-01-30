@@ -433,6 +433,201 @@
 
 
 
+
+(defn- create-param-candidate [param candidate]
+  {:value (:value candidate)
+   :candidate (:value param)
+   :location (:location candidate)
+   :package (:package candidate)
+   :file (:file candidate)
+   :doc (:doc candidate)
+   :module-name (:module-name candidate)})
+
+(defn- create-typealias-rec-candidates [param candidate]
+  (concat [(create-param-candidate param candidate)]
+          (map #(hash-map
+                  :value (str (:value candidate) "." (:name %))
+                  :candidate (str (:value param) "." (:name %))
+                  :package (:package candidate)
+                  :location (:location %)
+                  :signatureRaw (:signatureRaw %)
+                  :file (:file candidate)
+                  :module-name (:module-name candidate))
+               (-> candidate :tipe :fieldDefs))))
+
+
+(defn- create-destructured-type-alias-candidates [param candidate]
+  (let [get-field-def #(->> candidate :tipe :fieldDefs
+                            (filter (fn [x] (= % (:name x))))
+                            first)]
+    (map (fn [field]
+           (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
+             {:value (str (:value candidate) "." (:value field))
+              :candidate (:value field)
+              :package (:package candidate)
+              :file (:file candidate)
+              :doc signatureRaw
+              :location location
+              :module-name (:module-name candidate)}))
+         (:patterns param))))
+
+(defn- create-bracketed-type-alias-candidates [param candidate]
+  (let [aliaz (-> param :pattern :alias)
+        get-field-def #(->> candidate :tipe :fieldDefs
+                            (filter (fn [x] (= % (:name x))))
+                            first)]
+    (concat
+      (when aliaz
+        (concat
+          [(-> (create-param-candidate param candidate)
+               (assoc :candidate aliaz))]
+
+          (map #(hash-map
+                  :value (str (:value candidate ) "." (:name %))
+                  :candidate (str aliaz "." (:name %))
+                  :location (:location %)
+                  :doc (:signatureRaw %)
+                  :package (:package candidate)
+                  :file (:file candidate)
+                  :module-name (:module-name candidate))
+               (-> candidate :tipe :fieldDefs))))
+      (->>
+        (map
+          (fn [field]
+            (when-let [field-def (get-field-def (:value field))]
+              {:value  (str (:value candidate) "." (:value field))
+               :candidate (:value field)
+               :location (:location field-def)
+               :package (:package candidate)
+               :file (:file candidate)
+               :doc (:signatureRaw field-def)
+               :module-name (:module-name candidate)}))
+          (-> param :pattern :value :patterns))
+        (filter identity)))))
+
+
+(defn- print-rec [rec]
+  (str "{ "
+       (->> (map :signatureRaw (:fieldDefs rec))
+           (s/join "\n, "))
+       "\n}"))
+
+
+
+
+(defn- create-bracketed-adt-candidates [param candidate module modules]
+  (let [adtType (-> candidate :adtDefs first)
+        adtPattern (:pattern param)
+        fst-destruct-variable (-> param :pattern :value :variables first)]
+    (concat
+      [{:value (str (:value candidate) "." (:value adtType))
+        :candidate (:value adtType)
+        :location (:location adtType)
+        :package (:package candidate)
+        :file (:file candidate)
+        :doc (:paramsRaw adtType)
+        :module-name (:module-name candidate)}]
+
+      (when-let [aliaz (:alias adtPattern)]
+        [(-> (create-param-candidate param candidate)
+             (assoc :candidate aliaz))])
+
+      (when (= "variable" (:type fst-destruct-variable))
+        (let [adtParam (-> adtType :params first)
+              adtCandidate (get-candidate-by-token (:value adtParam) module modules) ]
+          (if adtCandidate
+            [{:value (:value adtCandidate)
+              :candidate (:value fst-destruct-variable)
+              :location (:location adtCandidate)
+              :package (:package adtCandidate)
+              :file (:file adtCandidate)
+              :doc (:doc adtCandidate)
+              :module-name (:module-name adtCandidate)}]
+
+            [{:value (:value adtParam)
+              :candidate (:value fst-destruct-variable)}])))
+
+      (when [(= "patternRec" (:type fst-destruct-variable))]
+        (let [adtParam (-> adtType :params first)
+              adtCandidate (get-candidate-by-token (:value adtParam) module modules)
+              get-field-def #(->> adtCandidate :tipe :fieldDefs
+                                  (filter (fn [x] (= % (:name x))))
+                                  first)]
+          (concat
+            (when (= "typeAliasDecl" (:type adtCandidate))
+              (concat
+                (when-let [aliaz (-> fst-destruct-variable :pattern :alias)]
+                  (concat
+                    [(create-param-candidate {:value aliaz} adtCandidate)]
+                    (map #(hash-map
+                            :value (str (:value adtCandidate) "." (:name %))
+                            :candidate (str aliaz "." (:name %))
+                            :file (:file adtCandidate)
+                            :package (:package adtCandidate)
+                            :doc (:signatureRaw %)
+                            :location (:location %)
+                            :module-name (:module-name adtCandidate))
+                         (-> adtCandidate :tipe :fieldDefs))))
+
+                (when (= "patternRec" (:type fst-destruct-variable))
+                  (map (fn [field]
+                        (when (get-field-def (:value field))
+                          (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
+                            {:value (str (:value adtCandidate) "." (:value field))
+                             :candidate (:value field)
+                             :package (:package adtCandidate)
+                             :file (:file adtCandidate)
+                             :doc signatureRaw
+                             :location location
+                             :module-name (:module-name adtCandidate)})))
+                      (-> fst-destruct-variable :patterns)))
+
+                (when (= "patternBracket" (:type fst-destruct-variable))
+                  (map (fn [field]
+                        (when (get-field-def (:value field))
+                          (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
+                            {:value (str (:value adtCandidate) "." (:value field))
+                             :candidate (:value field)
+                             :package (:package adtCandidate)
+                             :file (:file adtCandidate)
+                             :doc signatureRaw
+                             :location location
+                             :module-name (:module-name adtCandidate)})))
+                      (-> fst-destruct-variable :pattern :value :patterns)))))
+
+            (when (= "typeRec" (-> adtType :params first :type))
+              (concat
+                (when-let [aliaz (-> fst-destruct-variable :pattern :alias)]
+                  (concat
+                    [{:value (str (:value candidate) "." (:value adtType) ".<unamed record>")
+                      :candidate aliaz
+                      :file (:file candidate)
+                      :package (:package candidate)
+                      :location (-> adtType :params first :location)
+                      :doc (-> adtType :params first print-rec)  ;(-> adtType :params first :signatureRaw)
+                      :module-name (:module-name candidate)}]
+                    (map #(hash-map
+                            :value (str (:value candidate) "." (:value adtType) "." (:name %))
+                            :candidate (str aliaz "." (:name %))
+                            :file (:file candidate)
+                            :package (:package candidate)
+                            :doc (:signatureRaw %)
+                            :location (:location %)
+                            :module-name (:module-name candidate))
+                         (-> adtType :params first :fieldDefs))))
+
+                (map (fn [field]
+                       {:value (str (:value candidate) "." (:value adtType) "." (:name field))
+                        :candidate (:name field)
+                        :package (:package candidate)
+                        :file (:file candidate)
+                        :doc (:signatureRaw field)
+                        :location (:location field)
+                        :module-name (:module-name candidate)})
+
+                     (-> adtType :params first :fieldDefs))))))))))
+
+
 (defn- get-candidate-by-token-loc-aware [token pos module modules]
   (let [jump-to-candidates (get-jump-to-candidates module modules)
         decl (find-top-level-declaration-by-pos pos module)]
@@ -442,145 +637,30 @@
                      (cond
                        (and (= "variable" (:type param))
                             (= "typeAliasDecl" (:type candidate)))
-                       (concat [{:value (:value candidate)
-                                 :candidate (:value param)
-                                 :location (:location candidate)
-                                 :package (:package candidate)
-                                 :file (:file candidate)
-                                 :doc (:doc candidate)
-                                 :module-name (:module-name candidate)}]
-                               (map #(hash-map
-                                       :value (str (:value candidate) "." (:name %))
-                                       :candidate (str (:value param) "." (:name %))
-                                       :package (:package candidate)
-                                       :location (:location %)
-                                       :signatureRaw (:signatureRaw %)
-                                       :file (:file candidate)
-                                       :module-name (:module-name candidate))
-                                    (-> candidate :tipe :fieldDefs)))
+                       (create-typealias-rec-candidates param candidate)
+
 
                        (and (= "variable" (:type param))
                             (= "typeDecl" (:type candidate)))
 
-                       [{:value (:value candidate)
-                         :candidate (:value param)
-                         :location (:location candidate)
-                         :package (:package candidate)
-                         :file (:file candidate)
-                         :doc (:doc candidate)
-                         :module-name (:module-name candidate)}]
+                       [(create-param-candidate param candidate)]
 
 
-                       ;;Destructured record of type alias
                        (and (= "patternRec" (:type param))
                             (= "typeAliasDecl" (:type candidate)))
-
-                       (let [get-field-def #(->> candidate :tipe :fieldDefs
-                                                 (filter (fn [x] (= % (:name x))))
-                                                 first)]
-                         (map (fn [field]
-                                (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
-                                  {:value (str (:value candidate) "." (:value field))
-                                   :candidate (:value field)
-                                   :package (:package candidate)
-                                   :file (:file candidate)
-                                   :doc signatureRaw
-                                   :location location
-                                   :module-name (:module-name candidate)}))
-                              (:patterns param)))
+                       (create-destructured-type-alias-candidates param candidate)
 
 
                        (and (= "patternBracket" (:type param))
                             (= "typeAliasDecl" (:type candidate)))
-
-                       (let [aliaz (-> param :pattern :alias)
-                             get-field-def #(->> candidate :tipe :fieldDefs
-                                                 (filter (fn [x] (= % (:name x))))
-                                                 first)]
-                         (concat
-                           (when aliaz
-                             [{:value (:value candidate)
-                               :candidate aliaz
-                               :location (:location candidate)
-                               :package (:package candidate)
-                               :file (:file candidate)
-                               :doc (:doc candidate)
-                               :module-name (:module-name candidate)}]
-                             )
-                           (->>
-                             (map
-                              (fn [field]
-                                (when-let [field-def (get-field-def (:value field))]
-                                  {:value  (str (:value candidate) "." (:value field))
-                                   :candidate (:value field)
-                                   :location (:location field-def)
-                                   :package (:package candidate)
-                                   :file (:file candidate)
-                                   :doc (:signatureRaw field-def)
-                                   :module-name (:module-name candidate)}))
-                              (-> param :pattern :value :patterns))
-                             (filter identity)))
-                         )
+                       (create-bracketed-type-alias-candidates param candidate)
 
 
                        (and (= "patternBracket" (:type param))
                             (= "typeDecl" (:type candidate))
                             (= 1 (-> candidate :adtDefs count))
                             (not (in-range? pos (-> decl :annotation))))
-                       (let [adtType (-> candidate :adtDefs first)
-                             adtPattern (:pattern param)]
-                         (concat
-                           [{:value (str (:value candidate) "." (:value adtType))
-                             :candidate (:value adtType)
-                             :location (:location adtType)
-                             :package (:package candidate)
-                             :file (:file candidate)
-                             :doc (:paramsRaw adtType)
-                             :module-name (:module-name candidate)}]
-                           (when-let [aliaz (:alias adtPattern)]
-                             [{:value (:value candidate)
-                               :candidate aliaz
-                               :location (:location candidate)
-                               :package (:package candidate)
-                               :file (:file candidate)
-                               :doc (:doc candidate)
-                               :module-name (:module-name candidate)}])
-                           (when (= "variable" (-> param :pattern :value :variables first :type))
-                             (let [adtParam (-> adtType :params first)
-                                   adtCandidate (get-candidate-by-token (:value adtParam) module modules) ]
-                               (if adtCandidate
-                                 [{:value (:value adtCandidate)
-                                   :candidate (-> param :pattern :value :variables first :value)
-                                   :location (:location adtCandidate)
-                                   :package (:package adtCandidate)
-                                   :file (:file adtCandidate)
-                                   :doc (:doc adtCandidate)
-                                   :module-name (:module-name adtCandidate)}]
-
-                                 [{:value (:value adtParam)
-                                   :candidate (-> param :pattern :value :variables first :value)}])))
-
-                           (when [(= "patternRec" (-> param :pattern :value :variables first :type))]
-                             (let [adtParam (-> adtType :params first)
-                                   adtCandidate (get-candidate-by-token (:value adtParam) module modules)
-                                   pattern-rec (-> param :pattern :value :variables first)
-                                   get-field-def #(->> adtCandidate :tipe :fieldDefs
-                                                       (filter (fn [x] (= % (:name x))))
-                                                       first)]
-                               (when (= "typeAliasDecl" (:type adtCandidate))
-                                 (map (fn [field]
-                                        (when (get-field-def (:value field))
-                                          (let [{:keys [location doc signatureRaw]} (get-field-def (:value field)) ]
-                                            {:value (str (:value adtCandidate) "." (:value field))
-                                             :candidate (:value field)
-                                             :package (:package adtCandidate)
-                                             :file (:file adtCandidate)
-                                             :doc signatureRaw
-                                             :location location
-                                             :module-name (:module-name adtCandidate)})))
-                                      (:patterns pattern-rec))
-                                 )
-                               ))))
+                       (create-bracketed-adt-candidates param candidate module modules)
 
 
                        :else []))
@@ -597,23 +677,6 @@
 
       ;; fallback to default
       (get-candidate-by-token token module modules))))
-
-
-;; (let [p-file "/Users/mrundberget/projects/elm-super-simple"
-;;       m-file "/Users/mrundberget/projects/elm-super-simple/src/ModuleA.elm"
-;;       modules (:file-asts (get-project p-file))
-;;       module (get-module-ast p-file m-file)
-;;       pos {:ch 13 :line 16}
-;;       token "person.name"]
-
-
-;;   ;(find-top-level-declaration-by-pos pos module)
-
-;;   (get-candidate-by-token-loc-aware token pos module modules)
-
-;;   )
-
-
 
 
 
@@ -733,33 +796,58 @@
                                (first
                                  (filter
                                    #(contains? (:candidate-tokens %) tok)
-                                   jump-to-candidates)))]
+                                   jump-to-candidates)))
+        mod-name (when-not (= (:module-name %)
+                              (get-module-name module))
+                   (str "(" (:value %) ") "
+                        (:module-name %) ))]
 
     (if (and (= "nameDef" (:type decl))
              (-> decl :annotation :signature))
       (mapcat (fn [param {:keys [candidate] :as ann}]
                 (cond
                   (and (= "variable" (:type param))
+                       (= "typeRec" (:type ann)))
+                  (->> (map #(hash-map
+                               :candidate (str (:value param) "." (:name %)))
+                            (:fieldDefs ann))
+                       (cons {:candidate (:value param)}))
+
+                  (and (= "patternRec" (:type param))
+                       (= "typeRec" (:type ann)))
+                  (map #(hash-map
+                          :candidate (:value %))
+                       (:patterns param))
+
+                  (and (= "patternBracket" (:type param))
+                       (= "typeRec" (:type ann)))
+                  (concat
+                    (when-let [aliaz (-> param :pattern :alias)]
+                      (concat
+                        [{:candidate aliaz}]
+                        (map #(hash-map
+                                :candidate (str aliaz "." (:name %)))
+                             (:fieldDefs ann))))
+                    (map #(hash-map
+                            :candidate (:value %))
+                         (-> param :pattern :value :patterns)))
+
+
+                  (and (= "variable" (:type param))
                        (= "typeAliasDecl" (:type candidate)))
                   (->> (map #(hash-map
                                :candidate (str (:value param) "." (:name %))
-                               :module-name (when-not (= (get-module-name module)
-                                                         (:module-name candidate))
-                                              (str "(" (:value candidate) ") "
-                                                   (:module-name candidate))))
+                               :module-name (mod-name candidate))
                             (-> candidate :tipe :fieldDefs))
                        (cons {:candidate (:value param)
-                              :module-name (when-not (= (get-module-name module)
-                                                        (:module-name candidate))
-                                             (str "(" (:value candidate) ") "
-                                                  (:module-name candidate) ))}))
+                              :module-name (mod-name candidate)}))
 
                   (and (= "patternRec" (:type param))
                        (= "typeAliasDecl" (:type candidate)))
 
                   (map (fn [pattern]
                          {:candidate (:value pattern)
-                          :module-name (m-name candidate)})
+                          :module-name (mod-name candidate)})
                        (:patterns param) )
 
 
@@ -772,36 +860,23 @@
                       (when aliaz
                         (concat
                           [{:candidate aliaz
-                            :module-name (when-not (= (get-module-name module)
-                                                        (:module-name candidate))
-                                             (str "(" (:value candidate) ") "
-                                                  (:module-name candidate) ))}]
+                            :module-name (mod-name candidate)}]
                           (map #(hash-map
-                               :candidate (str aliaz "." (:name %))
-                               :module-name (when-not (= (get-module-name module)
-                                                         (:module-name candidate))
-                                              (str "(" (:value candidate) ") "
-                                                   (:module-name candidate))))
-                            (-> candidate :tipe :fieldDefs))
-                          ))
+                                  :candidate (str aliaz "." (:name %))
+                                  :module-name (mod-name candidate))
+                               (-> candidate :tipe :fieldDefs))))
 
                       (map
                         #(hash-map
-                               :candidate (:value %)
-                               :module-name (when-not (= (get-module-name module)
-                                                         (:module-name candidate))
-                                              (str "(" (:value candidate) ") "
-                                                   (:module-name candidate))))
-                        (-> param :pattern :value :patterns))
-                      )
-
-
-                    )
+                           :candidate (:value %)
+                           :module-name (mod-name candidate))
+                        (-> param :pattern :value :patterns))))
 
                   (and (= "patternBracket" (:type param))
                        (= "typeDecl" (:type candidate))
                        (= 1 (-> candidate :adtDefs count))
                        (not (in-range? pos (-> decl :annotation))))
+
 
                   (let [pattern-param (-> param :pattern :value :variables first)
                         adtType (-> candidate :adtDefs first)
@@ -811,7 +886,7 @@
                     (concat
                       (when-let [aliaz (:alias adtPattern)]
                         [{:candidate aliaz
-                          :module-name (:module-name candidate)}])
+                          :module-name (mod-name candidate)}])
 
                       (when (and (= "variable" (:type pattern-param))
                                  (nil? (:type adtCandidate)))
@@ -821,21 +896,38 @@
                                  (= "typeAliasDecl" (:type adtCandidate)))
                         (map #(hash-map
                                 :candidate (str (:value pattern-param) "." (:name %))
-                                :module-name (when-not (= (get-module-name module)
-                                                          (:module-name adtCandidate))
-                                               (str "(" (:value adtCandidate) ") "
-                                                    (:module-name adtCandidate))))
+                                :module-name (mod-name candidate))
                              (-> adtCandidate :tipe :fieldDefs)))
 
-                      (when (and (= "patternRec" (:type pattern-param))
-                                 adtCandidate)
+                      (when (= "patternRec" (:type pattern-param))
                         (map #(hash-map
                                 :candidate (:value %)
-                                :module-name (when-not (= (get-module-name module)
-                                                          (:module-name adtCandidate))
-                                               (str "(" (:value adtCandidate) ") "
-                                                    (:module-name adtCandidate))))
-                             (:patterns pattern-param)))))
+                                :module-name (mod-name candidate))
+                             (:patterns pattern-param)))
+
+                      (when (= "patternBracket" (:type pattern-param))
+
+                        (when (= "patternRec" (-> pattern-param :pattern :value :type))
+                          (concat
+                            (when-let [aliaz (-> pattern-param :pattern :alias)]
+                              (concat
+                                [{:candidate aliaz
+                                  :module-name (when adtCandidate
+                                                 (mod-name adtCandidate))}]
+                                (when adtCandidate
+                                  (map #(hash-map
+                                          :candidate  (str aliaz "." (:name %))
+                                          :module-name (mod-name adtCandidate))
+                                       (-> adtCandidate :tipe :fieldDefs)))
+
+                                (when (= "typeRec" (:type adtParam))
+                                  (map #(hash-map
+                                          :candidate (str aliaz "." (:name %))
+                                          :module-name (mod-name candidate))
+                                       (:fieldDefs adtParam)))))
+
+                            (map #(hash-map :candidate (:value %))
+                                 (-> pattern-param :pattern :value :patterns)))))))
 
 
 
@@ -976,23 +1068,6 @@
 
 
 
-;; (let [p-file "/Users/mrundberget/projects/elm-css"
-;;       m-file "/Users/mrundberget/projects/elm-css/src/Css.elm"
-;;       ed (first (pool/by-path m-file))]
-;;   (time
-;;     (doseq [x (repeat 100 "x")]
-;;       (time
-;;         (->> (get-hints {:token "minMax."
-;;                          :pos {:ch 11 :line 222}
-;;                          :ed ed}
-;;                         m-file
-;;                         p-file)
-;;              count
-;;              println)))))
-
-
-
-
 
 
 (defn- find-all-occs [line tok]
@@ -1083,18 +1158,6 @@
              :token token})))))
 
 
-
-
-
-
-
-
-
-
-;; (->> (find-usages "List.map"
-;;               "/Users/mrundberget/projects/elm-super-simple"
-;;               "/Users/mrundberget/projects/elm-super-simple/src/ModuleA.elm")
-;;      identity)
 
 
 
@@ -1321,12 +1384,6 @@
   (let [module (get-module-ast project-path module-file)
         decl (find-top-level-declaration-by-pos pos module)]
 
-;;     (println "DECL: " decl)
-;;     (println "test module candidate ?" (test-module-candidate? module))
-;;     (println "exposed by module ?" (exposed-by-module?  module (:value decl)))
-;;     (println "Has test in annotation" (= "Test" (-> (:annotation decl) :signature first :value)))
-;;     (println "Should not be ignored ? " (not (ignore-test? decl)))
-
     (if (and (test-module-candidate? module)
              (exposed-by-module?  module (:value decl))
              (= "Test" (-> (:annotation decl) :signature first :value))
@@ -1335,10 +1392,6 @@
         :module-name (get-module-name module)}]
       [])))
 
-
-;; (get-test-by-pos {:ch 32 :line 131}
-;;                  "/Users/mrundberget/projects/elm-super-simple/tests"
-;;                  "/Users/mrundberget/projects/elm-super-simple/tests/MoreTests.elm")
 
 
 
@@ -1394,14 +1447,6 @@
           :triggers #{:focus}
           :reaction (fn [ed]
                       (update-status-for-editor ed)))
-
-
-
-;; (let [p-file "/Users/mrundberget/projects/bootstrap-for-elm/tests"]
-;;   (->> (get-project p-file)
-;;        :file-asts
-;;        (map :file)
-;;        (map println)))
 
 
 
