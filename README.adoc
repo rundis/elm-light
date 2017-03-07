@@ -63,6 +63,9 @@ image:images/elm-light_type_alias.gif[]
 image:images/destructuring.gif[]
 
 
+=== Repl
+image:images/elm-light-repl.gif[]
+
 === Package Manager
 
 ==== Install package and start using at once
